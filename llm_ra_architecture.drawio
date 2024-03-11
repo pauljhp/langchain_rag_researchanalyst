@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2024-03-11T03:40:29.139Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="4hcK0QVWsLudiThubAPM" version="24.0.4" type="github" pages="3">
+<mxfile host="app.diagrams.net" modified="2024-03-11T03:43:38.166Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="bn03ECavnyltbhk3Yh77" version="24.0.4" type="github" pages="3">
   <diagram name="RA architecture" id="Vu7PVHk5IhnJ7YgcWroQ">
-    <mxGraphModel dx="1017" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1284" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -205,6 +205,9 @@
         <mxCell id="VnxcgQzUx8zNdXzcNlpm-28" value="Group 1" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="190" y="1130" width="120" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="_sQ_H2JtxO-yzKOvzTL7-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="VnxcgQzUx8zNdXzcNlpm-31" target="_sQ_H2JtxO-yzKOvzTL7-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
         <mxCell id="VnxcgQzUx8zNdXzcNlpm-31" value="..." style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="700" y="1130" width="120" height="60" as="geometry" />
         </mxCell>
@@ -241,11 +244,21 @@
         <mxCell id="VnxcgQzUx8zNdXzcNlpm-48" value="Final answer" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="440" y="1840" width="120" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="_sQ_H2JtxO-yzKOvzTL7-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="_sQ_H2JtxO-yzKOvzTL7-3" target="VnxcgQzUx8zNdXzcNlpm-44">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="1710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_sQ_H2JtxO-yzKOvzTL7-3" value="LLM Summarizer n" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="1270" width="120" height="60" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram id="WjMWBZCv0jiJ_ipzPih_" name="Key modules">
-    <mxGraphModel dx="1434" dy="772" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="899" dy="770" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
