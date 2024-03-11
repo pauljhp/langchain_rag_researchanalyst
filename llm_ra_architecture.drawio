@@ -1,6 +1,95 @@
-<mxfile host="app.diagrams.net" modified="2024-03-11T02:13:35.419Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" version="21.6.1" etag="16HFeoq5dfV61ktHYn_8" type="github">
-  <diagram name="Page-1" id="Vu7PVHk5IhnJ7YgcWroQ">
-    <mxGraphModel>
+<mxfile host="app.diagrams.net" modified="2024-03-11T03:03:07.546Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="73WpiLMyi0wyzOoN7eDo" version="24.0.4" type="github" pages="2">
+  <diagram name="RA architecture" id="Vu7PVHk5IhnJ7YgcWroQ">
+    <mxGraphModel dx="1687" dy="908" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-1" value="information retrievers" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0050ef;strokeColor=#001DBC;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="50" y="110" width="720" height="550" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-10" value="unstructured data" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-1">
+          <mxGeometry x="10" y="40" width="699" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-22" value="public" style="swimlane;whiteSpace=wrap;html=1;fillColor=#cdeb8b;strokeColor=#36393d;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-10">
+          <mxGeometry x="470" y="10" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-4" value="transcripts" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-22">
+          <mxGeometry x="25" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-3" value="annual reports" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-22">
+          <mxGeometry x="25" y="85" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-7" value="websites" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-22">
+          <mxGeometry x="25" y="130" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-23" value="private" style="swimlane;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#36393d;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-10">
+          <mxGeometry x="40" y="10" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-2" value="research hub" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-23">
+          <mxGeometry x="25" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-47" value="analyst models" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-23">
+          <mxGeometry x="25" y="85" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-24" value="semi-private" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f9f7ed;strokeColor=#36393d;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-10">
+          <mxGeometry x="254" y="10" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-5" value="supply chain" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-24">
+          <mxGeometry x="20" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-25" value="supply chain" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-24">
+          <mxGeometry x="20" y="85" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-20" value="structured data" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;fillColor=#bac8d3;strokeColor=#23445d;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-1">
+          <mxGeometry x="10" y="270" width="700" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-27" value="private" style="swimlane;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#36393d;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-20">
+          <mxGeometry x="40" y="20" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-48" value="Impax Portal" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-27">
+          <mxGeometry x="20" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-39" value="semi-private" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f9f7ed;strokeColor=#36393d;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-20">
+          <mxGeometry x="254" y="20" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-28" value="research hub" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-39">
+          <mxGeometry x="25" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-6" value="apis - Factset, FMP, HOLT" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-39">
+          <mxGeometry x="25" y="85" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-42" value="public" style="swimlane;whiteSpace=wrap;html=1;fillColor=#cdeb8b;strokeColor=#36393d;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-20">
+          <mxGeometry x="470" y="20" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-45" value="extracted tables" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-42">
+          <mxGeometry x="25" y="40" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-46" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;LLM Research Assistant Architecture&lt;/h1&gt;&lt;p&gt;Research Assistant built with langchain&lt;/p&gt;" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="50" y="20" width="720" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Q4wYAz-Q42Yp5_fiMb4D-49" value="Tools" style="swimlane;whiteSpace=wrap;html=1;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" vertex="1" parent="1">
+          <mxGeometry x="860" y="110" width="640" height="550" as="geometry" />
+        </mxCell>
+        <mxCell id="V_DPmNT7ma8AQbMGOv90-2" value="Web Browsing" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-49">
+          <mxGeometry x="10" y="40" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="V_DPmNT7ma8AQbMGOv90-3" value="Valuation" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-49">
+          <mxGeometry x="240" y="40" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="V_DPmNT7ma8AQbMGOv90-4" value="Document Writing" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-49">
+          <mxGeometry x="10" y="275" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="V_DPmNT7ma8AQbMGOv90-5" value="Forecasting" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="Q4wYAz-Q42Yp5_fiMb4D-49">
+          <mxGeometry x="240" y="275" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="V_DPmNT7ma8AQbMGOv90-1" value="Agent Teams" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="700" width="880" height="440" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="_F9Y3tXnB264og_bb6rm" name="Custom RAG Retriever">
+    <mxGraphModel dx="1434" dy="772" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
