@@ -7,6 +7,9 @@ data/
 # docker configuration files
 dockerfile
 
+# config script with sensitive info
+./set_environment_vars.sh
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
