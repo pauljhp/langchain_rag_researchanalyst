@@ -1,5 +1,5 @@
 from typing import NamedTuple, List, Tuple, Optional, Any, Union
-from collections import namedtuple, OrderedDict
+from collections import namedtuple, OrderedDict, deque
 import heapq
 
 
@@ -11,6 +11,7 @@ PriorityQueueItem = namedtuple(
 Numeric = Union[int, float, complex]
 
 class PriorityQueue():
+    """Priority queue"""
     def __init__(
             self, 
             reversed: bool=False,
@@ -39,3 +40,46 @@ class PriorityQueue():
     def is_empty(self) -> bool:
         return len(self._queue) == 0
 
+class Queue():
+    """First in first out data structure"""
+    def __init__(self, values: Optional[List[Any]]):
+        if values:
+            self._queue = deque(values)
+        else:
+            self._queue = deque()
+
+    def push(self, newval: Any):
+        self._queue.append(newval)
+
+    def pop(self):
+        item = self._queue.popleft()
+        return item
+    
+    def __len__(self):
+        return len(self._queue)
+    
+    def __iter__(self):
+        return list(self._queue).__iter__()
+
+class Stack():
+    """Last in first out data structure"""
+    def __init__(self, values: Optional[List[Any]]):
+        if values:
+            self._stack = deque(values)
+        else:
+            self._stack = deque()
+
+    def push(self, newval: Any):
+        self._stack.append(newval)
+
+    def pop(self):
+        item = self._stack.pop()
+        return item
+    
+    def __len__(self):
+        return len(self._stack)
+    
+    def __iter__(self):
+        return list(self._stack).__iter__()
+
+    
