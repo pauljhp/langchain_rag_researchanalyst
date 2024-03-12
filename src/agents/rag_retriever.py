@@ -6,15 +6,35 @@ from langchain.chains import RetrievalQA
 import chromadb
 from typing import Literal, List, Dict
 import numpy as np
+import os
 
-embedding_model = AzureOpenAIEmbeddings(model="text-embedding")
+
+embedding_model = AzureOpenAIEmbeddings(model=os.environ.get("DEFAULT_EMBEDDING_MODEL"))
 
 chroma_client = chromadb.HttpClient(
-    host="https://impax-chromadb-test.azurewebsites.net/", 
-    port="8000")
+    host=os.environ.get("CHROMADB_ENDPOINT"), 
+    port=os.environ.get("CHROMADB_PORT"))
 VectorStore = Literal["chroma", "neo4j"]
 
+
+def chroma_retrieve_documents(
+        db_name: str,
+        query: str,
+        n_results: int,
+        filter: Dict,
+        embedding_model=embedding_model
+        ) -> List[Dict]:
+    collection = chroma_client.get_collection(db_name)
+    query_embedding = embedding_model.embed_query(query)
+    res = collection.query(
+        query_embedding,
+        where=filter,
+        n_results=n_results
+    )
+    return res
+    
 class Retriever:
+    # FIXME - change to fetch from environment vars
     llm_16k = AzureChatOpenAI(
         deployment_name="gpt-35-16k", 
         model_name="gpt-35-turbo-16k", 
@@ -58,8 +78,7 @@ class Retriever:
         question})
         answer = {
             "answer": res.get("result"),
-            "sources": np.unique(res.get("source_documents")
-            )
+            "sources": res.get("source_documents")
         }
         return answer
     

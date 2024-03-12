@@ -1,6 +1,7 @@
 from typing import NamedTuple, List, Tuple, Optional, Any, Union
 from collections import namedtuple, OrderedDict, deque
 import heapq
+import tiktoken
 
 
 PriorityQueueItem = namedtuple(
@@ -82,4 +83,14 @@ class Stack():
     def __iter__(self):
         return list(self._stack).__iter__()
 
+
+#####################################################
+########## shared utility functions #################
+#####################################################    
     
+def num_tokens_from_string(
+        string: str, encoding_name: str="gpt2") -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.get_encoding(encoding_name)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
