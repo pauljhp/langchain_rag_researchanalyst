@@ -1,7 +1,11 @@
-from typing import NamedTuple, List, Tuple, Optional, Any, Union
+from typing import NamedTuple, List, Tuple, Optional, Any, Union, Literal
 from collections import namedtuple, OrderedDict, deque
 import heapq
 import tiktoken
+import validators
+import requests
+from urllib.parse import urlparse
+from pathlib import Path
 
 
 PriorityQueueItem = namedtuple(
@@ -94,3 +98,36 @@ def num_tokens_from_string(
     encoding = tiktoken.get_encoding(encoding_name)
     num_tokens = len(encoding.encode(string))
     return num_tokens
+
+def is_valid_url(url: str) -> bool:
+    return bool(validators.url(url))
+
+def url_content_type_is_text(url: str) -> bool:
+    """check if the content type of a url is text"""
+    try:
+        response = requests.head(url, allow_redirects=True)
+
+        if response.status_code >= 400:
+            response = requests.get(url, stream=True)
+        
+        content_type = response.headers.get('Content-Type', '').lower()
+        return content_type.startswith('text/')
+    
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return False
+
+def detect_url_type(url: str) -> Literal["webpdf", "localpdf", "url", "others"]:
+    url_parsed = urlparse(url)
+    suffix = Path(url_parsed.path).suffix
+    if url_parsed.scheme.lower() in ("http", "https"):
+        if suffix in ("", ".html", ".htm"):
+            return "url"
+        elif suffix.lower() == ".pdf":
+            return "webpdf"
+        else: return "others"
+    elif url_parsed.scheme == "":
+        if suffix.lower() == '.pdf':
+            return "localpdf"
+        else: return "others"
+    else: return "others"

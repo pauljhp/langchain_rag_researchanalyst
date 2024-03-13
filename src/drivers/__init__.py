@@ -1,7 +1,7 @@
 import chromadb
 import os
 from langchain_openai import AzureOpenAIEmbeddings
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, Any
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import tqdm
 
@@ -24,6 +24,7 @@ def write_doc_to_db(
         db_driver: Union[VectorDBClients.chroma_client]=VectorDBClients.chroma_client,
         id_prefix: str="",
         chunk_size: int=1000,
+        additional_metadata: Dict[str, Any]={},
         verbose: bool=False,
     ) -> None:
     """write a list of documents to database"""
@@ -42,6 +43,7 @@ def write_doc_to_db(
             metadatas, embeddings, ids = [], [], []
             split_docs = text_splitter.split_text(document.page_content)
             metadata = document.metadata
+            metadata.update(additional_metadata)
             metadatas = [metadata for _ in split_docs]
             embeddings = embedding_model.embed_documents(split_docs)
             ids = [f"{id_prefix}_{id}_chunk{i}" for i in range(1, len(split_docs)+1)]
