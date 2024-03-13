@@ -1,7 +1,7 @@
 from typing import Union, List, Tuple, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
-from api.data_ingestion import ingest_data_from_urls
+from api.data_ingestion import greedy_ingest_data_from_urls
 import os
 
 api_type = "azure"
@@ -33,9 +33,9 @@ class UrlLoaderContainer(BaseModel):
     db_name: str
     depth: int
 
-@app.put("/data-ingestion/")
-def ingest_data(item: UrlLoaderContainer):
-    ingest_data_from_urls(
+@app.put("/data-ingestion/greedy-load-url/")
+def greedy_ingest_data(item: UrlLoaderContainer):
+    greedy_ingest_data_from_urls(
         item.urls,
         item.db_name,
         item.depth

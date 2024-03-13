@@ -334,7 +334,7 @@ class URLCrawl:
     """Crawler with search functions"""
     def __init__(
             self,
-            query: Optional[str]=None,
+            query: Optional[str]="",
             start_urls: List[UrlContainer]=[],
             browser: Literal["selenium", "requests"]="requests",
             embedding_model_name: str="text-embedding",

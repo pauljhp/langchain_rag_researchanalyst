@@ -119,15 +119,16 @@ def url_content_type_is_text(url: str) -> bool:
 
 def detect_url_type(url: str) -> Literal["webpdf", "localpdf", "url", "others"]:
     url_parsed = urlparse(url)
-    suffix = Path(url_parsed.path).suffix
+    suffix_1 = Path(url_parsed.path).suffix
+    suffix_2 = Path(url_parsed.query).suffix
     if url_parsed.scheme.lower() in ("http", "https"):
-        if suffix in ("", ".html", ".htm"):
+        if suffix_1 in ("", ".html", ".htm") and suffix_2 in ("", ".html", ".htm"):
             return "url"
-        elif suffix.lower() == ".pdf":
+        elif suffix_1.lower() == ".pdf" or suffix_2.lower() == ".pdf":
             return "webpdf"
         else: return "others"
     elif url_parsed.scheme == "":
-        if suffix.lower() == '.pdf':
+        if suffix_1.lower() == '.pdf':
             return "localpdf"
         else: return "others"
     else: return "others"
