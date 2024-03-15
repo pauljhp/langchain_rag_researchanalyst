@@ -19,12 +19,12 @@ def root():
 #########################################
 ##### constructs for the api inputs #####
 #########################################
-class GreedyUrlLoaderContainer(BaseModel):
+class UrlLoaderContainer(BaseModel):
     urls: list
     db_name: str
     adddtional_metadata: Dict[str, Any]
 
-class UrlLoaderContainer(BaseModel):
+class GreedyUrlLoaderContainer(BaseModel):
     urls: list
     db_name: str
     depth: int
@@ -50,7 +50,7 @@ class TenStepParamsContainer(BaseModel):
 #########################################
 # question answer - get methods
 
-@app.get("/info-retrieval/get-answer/")
+@app.post("/info-retrieval/get-answer/")
 def get_answer_from_db(item: InfoRetrieverParamsContainer):
     query = item.query
     recursion_limit = item.recursion_limit
@@ -64,7 +64,7 @@ def get_answer_from_db(item: InfoRetrieverParamsContainer):
         )
     return answer
 
-@app.get("/ten-step-writer/market-overview/")
+@app.post("/ten-step-writer/market-overview/")
 def get_answer_from_db(item: TenStepParamsContainer):
     company_name = item.company_name
     recursion_limit = item.recursion_limit
@@ -80,7 +80,7 @@ def get_answer_from_db(item: TenStepParamsContainer):
     answer = impax_10_step_writer.market_overview()
     return answer
 
-@app.get("/ten-step-writer/cit-tse/")
+@app.post("/ten-step-writer/cit-tse/")
 def get_answer_from_db(item: TenStepParamsContainer):
     company_name = item.company_name
     recursion_limit = item.recursion_limit
@@ -96,7 +96,7 @@ def get_answer_from_db(item: TenStepParamsContainer):
     answer = impax_10_step_writer.cit_tse()
     return answer
 
-@app.get("/ten-step-writer/business-model/")
+@app.post("/ten-step-writer/business-model/")
 def get_answer_from_db(item: TenStepParamsContainer):
     company_name = item.company_name
     recursion_limit = item.recursion_limit
@@ -112,7 +112,7 @@ def get_answer_from_db(item: TenStepParamsContainer):
     answer = impax_10_step_writer.business_model()
     return answer
 
-@app.get("/ten-step-writer/competitive-advantage/")
+@app.post("/ten-step-writer/competitive-advantage/")
 def get_answer_from_db(item: TenStepParamsContainer):
     company_name = item.company_name
     recursion_limit = item.recursion_limit
@@ -133,6 +133,8 @@ def get_answer_from_db(item: TenStepParamsContainer):
 
 @app.put("/data-ingestion/greedy-load-url/")
 def greedy_ingest_data(item: GreedyUrlLoaderContainer):
+    """Greedy ingest data from a list of urls, going x layers deep in a 
+    breadth-first search fashion, according to the depth set."""
     greedy_ingest_data_from_urls(
         item.urls,
         item.db_name,
@@ -140,13 +142,16 @@ def greedy_ingest_data(item: GreedyUrlLoaderContainer):
         item.adddtional_metadata,
         item.browser
     )
-    print("success!")
-    print(f"{item.urls} processed")
+    return "success!\n" +\
+    f"{';'.join(item.urls)} processed"
 
 @app.put("/data-ingestion/ingest-from-urls/")
 def ingest_from_urls(item: UrlLoaderContainer):
+    """Ingest data from a list of urls to vector database."""
     ingest_data_from_urls(
         item.urls,
         item.db_name,
         item.adddtional_metadata
     )
+    return "success!\n " +\
+    f"{';'.join(item.urls)} processed"
