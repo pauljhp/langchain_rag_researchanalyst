@@ -1,44 +1,152 @@
 from typing import Union, List, Tuple, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
-from api.data_ingestion import greedy_ingest_data_from_urls
+from api.data_ingestion import greedy_ingest_data_from_urls, ingest_data_from_urls
+from api.report_writing import get_research_graph, Impax10StepWriter
+from utils import DBConfig
+from typing import List, Dict, Any, Literal
 import os
 
-api_type = "azure"
-api_key = "d8a6014348be4cc7951de2428dd55594"
-api_version = "2023-07-01-preview"
-api_base = "https://ipx-neo4j-openai-test.openai.azure.com/"
-deployment_name = "gpt35-test"
-model_name = "gpt-35-turbo"
-
-os.environ['OPENAI_API_KEY'] = "d8a6014348be4cc7951de2428dd55594"
-os.environ["OPENAI_API_TYPE"] = "azure"
-os.environ["OPENAI_API_VERSION"] = api_version
-os.environ["AZURE_OPENAI_ENDPOINT"] = api_base
-os.environ["GOOGLE_CSE_ID"] = "040ca56f062be4799"
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAzIpgVYFkbF-jcgVdIflJ5HeBJ-Jl9E7A"
-os.environ["TAVILY_API_KEY"] = "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"
-os.environ["CHROMADB_ENDPOINT"] = "https://impax-chromadb-test.azurewebsites.net/"
-os.environ["CHROMADB_PORT"] = "8000"
-os.environ["DEFAULT_EMBEDDING_MODEL"] = "text-embedding"
 
 app = FastAPI()
 
+
 @app.get("/")
 def root():
-    return {"message": "hello"}
+    return {"intro": "Welcome to Impax's AI assistant API. This AI is built with langchain, langgrah, and Azure OpenAI."}
+
+
+#########################################
+##### constructs for the api inputs #####
+#########################################
+class GreedyUrlLoaderContainer(BaseModel):
+    urls: list
+    db_name: str
+    adddtional_metadata: Dict[str, Any]
 
 class UrlLoaderContainer(BaseModel):
     urls: list
     db_name: str
     depth: int
+    adddtional_metadata: Dict[str, Any]
+    browser: Literal["selenium", "requests"]
+class InfoRetrieverParamsContainer(BaseModel):
+    query: str
+    recursion_limit: int
+    db_names: List[str]
+    filters: List[Dict[str, Any]]
+
+class TenStepParamsContainer(BaseModel):
+    company_name: str
+    recursion_limit: int
+    db_names: List[str]
+    filters: List[Dict[str, Any]]
+
+
+#########################################
+############### API methods #############
+#########################################
+
+#########################################
+# question answer - get methods
+
+@app.get("/info-retrieval/get-answer/")
+def get_answer_from_db(item: InfoRetrieverParamsContainer):
+    query = item.query
+    recursion_limit = item.recursion_limit
+    db_names = list(item.db_names)
+    filters = list(item.filters)
+    db_configs = [DBConfig(db_name=db_name, filter=filter)
+                  for db_name, filter in zip(db_names, filters)]
+    graph = get_research_graph(db_configs)
+    answer = graph.invoke(
+           query, {"recursion_limit": recursion_limit}
+        )
+    return answer
+
+@app.get("/ten-step-writer/market-overview/")
+def get_answer_from_db(item: TenStepParamsContainer):
+    company_name = item.company_name
+    recursion_limit = item.recursion_limit
+    db_names = list(item.db_names)
+    filters = list(item.filters)
+    db_configs = [DBConfig(db_name=db_name, filter=filter)
+                  for db_name, filter in zip(db_names, filters)]
+    impax_10_step_writer = Impax10StepWriter(
+        company_name=company_name,
+        dbconfigs=db_configs,
+        recursion_limit=recursion_limit
+    )
+    answer = impax_10_step_writer.market_overview()
+    return answer
+
+@app.get("/ten-step-writer/cit-tse/")
+def get_answer_from_db(item: TenStepParamsContainer):
+    company_name = item.company_name
+    recursion_limit = item.recursion_limit
+    db_names = list(item.db_names)
+    filters = list(item.filters)
+    db_configs = [DBConfig(db_name=db_name, filter=filter)
+                  for db_name, filter in zip(db_names, filters)]
+    impax_10_step_writer = Impax10StepWriter(
+        company_name=company_name,
+        dbconfigs=db_configs,
+        recursion_limit=recursion_limit
+    )
+    answer = impax_10_step_writer.cit_tse()
+    return answer
+
+@app.get("/ten-step-writer/business-model/")
+def get_answer_from_db(item: TenStepParamsContainer):
+    company_name = item.company_name
+    recursion_limit = item.recursion_limit
+    db_names = list(item.db_names)
+    filters = list(item.filters)
+    db_configs = [DBConfig(db_name=db_name, filter=filter)
+                  for db_name, filter in zip(db_names, filters)]
+    impax_10_step_writer = Impax10StepWriter(
+        company_name=company_name,
+        dbconfigs=db_configs,
+        recursion_limit=recursion_limit
+    )
+    answer = impax_10_step_writer.business_model()
+    return answer
+
+@app.get("/ten-step-writer/competitive-advantage/")
+def get_answer_from_db(item: TenStepParamsContainer):
+    company_name = item.company_name
+    recursion_limit = item.recursion_limit
+    db_names = list(item.db_names)
+    filters = list(item.filters)
+    db_configs = [DBConfig(db_name=db_name, filter=filter)
+                  for db_name, filter in zip(db_names, filters)]
+    impax_10_step_writer = Impax10StepWriter(
+        company_name=company_name,
+        dbconfigs=db_configs,
+        recursion_limit=recursion_limit
+    )
+    answer = impax_10_step_writer.competitive_advantage()
+    return answer
+
+#########################################
+# data ingestion - put methods
 
 @app.put("/data-ingestion/greedy-load-url/")
-def greedy_ingest_data(item: UrlLoaderContainer):
+def greedy_ingest_data(item: GreedyUrlLoaderContainer):
     greedy_ingest_data_from_urls(
         item.urls,
         item.db_name,
-        item.depth
+        item.depth,
+        item.adddtional_metadata,
+        item.browser
     )
     print("success!")
     print(f"{item.urls} processed")
+
+@app.put("/data-ingestion/ingest-from-urls/")
+def ingest_from_urls(item: UrlLoaderContainer):
+    ingest_data_from_urls(
+        item.urls,
+        item.db_name,
+        item.adddtional_metadata
+    )

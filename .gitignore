@@ -13,6 +13,7 @@ dockerfile
 
 # config script with sensitive info
 ./set_environment_vars.sh
+set_env_vars.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
