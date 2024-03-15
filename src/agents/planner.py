@@ -54,9 +54,9 @@ class Planner:
     def _get_executor(self, llm, tools: List):
         return load_agent_executor(llm, tools, verbose=True)
     
-    def __init__(self, tools: List):
+    def __init__(self, tools: List, executor_llm: AzureChatOpenAI):
         self.tools = tools
-        self.executor = self._get_executor(self.llm, tools)
+        self.executor = self._get_executor(executor_llm, tools)
         self.agent = PlanAndExecute(planner=self.planner, executor=self.executor)
     
     def run(self, query: str):

@@ -38,10 +38,7 @@ def greedy_ingest_data_from_urls(
         additional_metadata=additional_metadata
         )
     
-def ingest_data_from_urls(
-        urls: List[str], 
-        db_name: str, 
-        additional_metadata: Dict[str, Any]={}):
+def load_data_from_urls(urls: List[str]):
     web_pdfs, web_pages, local_pdfs = [], [], []
     for url in urls:
         if utils.detect_url_type(url) == "url":
@@ -51,17 +48,22 @@ def ingest_data_from_urls(
                 web_pdfs.append(url)
             elif utils.detect_url_type(url) == "localpdf":
                 local_pdfs(url)
-        web_loader = utils.doc_loaders.CustomDocumentLoaders.load_urls(web_pages)
-        data = web_loader.load()
-        for pdf_url in web_pdfs:
-            try:
-                loaded = utils.doc_loaders.CustomDocumentLoaders.load_web_pdf(pdf_url)
-                data += loaded
-            except Exception as e:
-                print(f"{url} not loaded, {e}")
-                pass
+    web_loader = utils.doc_loaders.CustomDocumentLoaders.load_urls(web_pages)
+    data = web_loader.load()
+    for pdf_url in web_pdfs:
+        try:
+            loaded = utils.doc_loaders.CustomDocumentLoaders.load_web_pdf(pdf_url)
+            data += loaded
+        except Exception as e:
+            print(f"{url} not loaded, {e}")
+            pass
+    return data
 
-    
+def ingest_data_from_urls(
+        urls: List[str], 
+        db_name: str, 
+        additional_metadata: Dict[str, Any]={}):
+    data = load_data_from_urls(urls)
     drivers.write_doc_to_db(
         db_name,
         data,

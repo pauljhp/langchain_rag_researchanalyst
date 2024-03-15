@@ -79,8 +79,7 @@ class CustomDocumentLoaders:
                 referer = urlunsplit((parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", ""))
                 pdf_path = parsed_url.query.replace("file=", "")
                 reconstructed_url = urlunsplit((parsed_url.scheme, parsed_url.netloc, pdf_path, "", ""))
-                print(reconstructed_url)
-                loaded_pdf = load_pdf_after_download(reconstructed_url)
+                loaded_pdf = load_pdf_after_download(reconstructed_url, referer)
             else:
                 loaded_pdf = load_pdf_after_download(url)
             return loaded_pdf

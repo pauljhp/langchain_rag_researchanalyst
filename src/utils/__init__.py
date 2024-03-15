@@ -8,6 +8,10 @@ from urllib.parse import urlparse
 from pathlib import Path
 
 
+#####################################################
+############# shared constructs ####################
+#####################################################    
+
 PriorityQueueItem = namedtuple(
     typename="PriorityQueueItem",
     field_names=["priority", "item"]
@@ -15,6 +19,14 @@ PriorityQueueItem = namedtuple(
 
 Numeric = Union[int, float, complex]
 
+DBConfig = namedtuple(
+    typename="DBConfig",
+    field_names=["db_name", "filter"]
+)
+
+#####################################################
+################## shared classes ###################
+#####################################################    
 class PriorityQueue():
     """Priority queue"""
     def __init__(
