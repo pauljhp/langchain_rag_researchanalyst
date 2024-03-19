@@ -1,4 +1,5 @@
 import chromadb
+from chromadb.config import Settings
 import os
 from langchain_openai import AzureOpenAIEmbeddings
 from typing import List, Dict, Tuple, Union, Any, Callable
@@ -16,7 +17,10 @@ class EmbeddingModel:
 class VectorDBClients:
     chroma_client = chromadb.HttpClient(
         host=os.environ.get("CHROMADB_ENDPOINT"), 
-        port=os.environ.get("CHROMADB_PORT")
+        port=os.environ.get("CHROMADB_PORT"),
+        settings=Settings(
+            chroma_client_auth_provider="token",
+            chroma_client_auth_credentials=os.environ.get("CHROMADB_TOKE"))
         )
     
 def write_doc_to_db(
