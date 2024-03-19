@@ -20,7 +20,8 @@ class VectorDBClients:
         port=os.environ.get("CHROMADB_PORT"),
         settings=Settings(
             chroma_client_auth_provider="token",
-            chroma_client_auth_credentials=os.environ.get("CHROMADB_TOKEN"))
+            chroma_client_auth_credentials=os.environ.get("CHROMADB_TOKEN")
+            )
         )
     
 def write_doc_to_db(
