@@ -1,10 +1,32 @@
 # Langchain Research Assistant
 
-API for investment research automation, built with langchain, langgraph and Azure OpenAI. 
+API for investment research automation, built with langchain, langgraph and Azure OpenAI.
 
 ## Overview
 
 The source code includes 5 modules. The main UI is through the api, run with `uvicorn main:app --host=<host> --port=<port>`
+
+
+### Key functionalities:
+
+#### Retrieval functions
+
+- Ability to retrieve information about a certain question, across internal and external sources, and quote the source
+- Ability to tabulate information about the same topic, and compare differences between sources. E.g. What is the expectation for data center to grow? Compare what analysts at Impax are expecting vs what companies are saying.
+
+#### Report writing functions
+
+#### Periodic "insight" series
+
+- Automatically generated inights periodically
+
+#### Why should we use this over readily made tools?
+
+- Trustworthy data sources;
+- Access to private data;
+- Efficiency - data pulled by user queries can be stored
+
+## Modules
 
 ### api:
 
@@ -24,7 +46,7 @@ This is where agents get their key tools. Some agent-specific tools are implemen
 
 ### drivers:
 
-The drivers to databases should be implemented here. Currently only Chromadb is implemented. 
+The drivers to databases should be implemented here. Currently only Chromadb is implemented.
 
 ### utils:
 
