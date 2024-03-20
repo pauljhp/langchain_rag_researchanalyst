@@ -6,6 +6,8 @@ import validators
 import requests
 from urllib.parse import urlparse
 from pathlib import Path
+from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
+from langchain_experimental.text_splitter import SemanticChunker
 
 
 #####################################################
@@ -23,6 +25,10 @@ DBConfig = namedtuple(
     typename="DBConfig",
     field_names=["db_name", "filter"]
 )
+
+seperators = ["\t", "\n", "\n\n", " ", "\r"]
+
+ChunkingStrategy = Literal["semantic", "tiktoken", "recursive", "character"]
 
 #####################################################
 ################## shared classes ###################
@@ -99,13 +105,50 @@ class Stack():
     def __iter__(self):
         return list(self._stack).__iter__()
 
+class Chunker:
+    chunking_strategy_mapper = {
+        "semantic": SemanticChunker,
+        "tiktoken": CharacterTextSplitter,
+        "character": CharacterTextSplitter,
+        "recursive": RecursiveCharacterTextSplitter
+    }
+    def __init__(
+            self, 
+            chunking_strategy: ChunkingStrategy="tiktoken", 
+            chunk_size: int=1000
+            ):
+        self.chunking_strategy = chunking_strategy
+        match chunking_strategy:
+            case "character" | "recursive": 
+                self.chunker = self.chunking_strategy_mapper[chunking_strategy](
+                        chunk_size=chunk_size,
+                        chunk_overlap=chunk_size // 10
+                    )
+            case "tiktoken":
+                self.chunker = CharacterTextSplitter.from_tiktoken_encoder(
+                    "cl100k_base", # this is the encoder tha works with GPT 3.5 and GPT 4
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_size // 10
+                )
+            case _:
+                raise NotImplementedError
+            # TODO - implement semantic chunker
+
+    def split_text(self, text: str):
+        match self.chunking_strategy:
+            case "tiktoken" | "character" | "recursive": 
+                return self.chunker.split_text(text)
+            case _:
+                raise NotImplementedError
+
+
 
 #####################################################
 ########## shared utility functions #################
 #####################################################    
     
 def num_tokens_from_string(
-        string: str, encoding_name: str="gpt2") -> int:
+        string: str, encoding_name: str="cl100k_base") -> int:
     """Returns the number of tokens in a text string."""
     encoding = tiktoken.get_encoding(encoding_name)
     num_tokens = len(encoding.encode(string))

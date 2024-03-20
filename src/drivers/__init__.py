@@ -2,12 +2,16 @@ import chromadb
 from chromadb.config import Settings
 import os
 from langchain_openai import AzureOpenAIEmbeddings
-from typing import List, Dict, Tuple, Union, Any, Callable
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from typing import List, Dict, Tuple, Union, Any, Callable, Literal
+from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
+from langchain_experimental.text_splitter import SemanticChunker
 import tqdm
 from openai import RateLimitError
 import time
+import utils
 
+
+ChunkingStrategy = Literal["semantic", "tiktoken", "recursive", "character"]
 
 class EmbeddingModel:
     default_embedding_model = AzureOpenAIEmbeddings(
@@ -36,7 +40,10 @@ def write_doc_to_db(
     ) -> None:
     """write a list of documents to database"""
     # FIXME - add logic to wait if rate limite is reached
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_size // 10)
+    text_splitter = RecursiveCharacterTextSplitter(
+        seperators=utils.seperators,
+        chunk_size=chunk_size, 
+        chunk_overlap=chunk_size // 10)
     # TODO - implement logic for neo4j ingestion
     if isinstance(db_driver, chromadb.api.client.Client):
         existing_collection_names = [col.name for col in db_driver.list_collections()]

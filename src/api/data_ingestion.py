@@ -12,9 +12,7 @@ from langchain_community.document_loaders.merge import MergedDataLoader
 
 embedding_model = AzureOpenAIEmbeddings(model=os.environ.get("DEFAULT_EMBEDDING_MODEL"))
 
-chroma_client = chromadb.HttpClient(
-    host=os.environ.get("CHROMADB_ENDPOINT"), 
-    port=os.environ.get("CHROMADB_PORT"))
+chroma_client = drivers.VectorDBClients.chroma_client
 
 VectorStore = Literal["chroma", "neo4j"]
 

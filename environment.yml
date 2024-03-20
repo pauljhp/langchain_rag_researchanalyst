@@ -1,0 +1,33 @@
+name: openai_env
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy
+  - pandas
+  - pip:
+    - selenium 
+    - unstructured[all-docs] 
+    - nltk 
+    - openai 
+    - langchain 
+    - langchain_community 
+    - langchain_openai
+    - langchain_experimental
+    - langgraph
+    - google-api-python-client
+    - langchainhub
+    - chromadb-client
+    - PyMuPDF
+    - beautifulsoup4
+    - requests
+    - tavily-python
+    - openfigipy
+    - lxml
+    - validators
+    - fastapi
+    - neo4j
+    - tiktoken
+
+prefix: C:\users\p.peng\anaconda3\envs\openai_env
