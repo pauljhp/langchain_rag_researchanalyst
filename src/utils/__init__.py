@@ -8,6 +8,11 @@ from urllib.parse import urlparse
 from pathlib import Path
 from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain_experimental.text_splitter import SemanticChunker
+import uuid
+import datetime as dt
+import numpy as np
+import base64
+import hashlib
 
 
 #####################################################
@@ -187,3 +192,33 @@ def detect_url_type(url: str) -> Literal["webpdf", "localpdf", "url", "others"]:
             return "localpdf"
         else: return "others"
     else: return "others"
+
+def encode_string(input_str, length: int=16) -> bytes:
+    input_bytes = input_str.encode("utf-8")
+    hash_bytes = hashlib.sha256(input_bytes).digest()
+    encoded_str = base64.b64encode(hash_bytes)
+    final_output = encoded_str[:length]
+    return final_output
+
+def figi_to_uuid(
+        figi: str, 
+        numerical_id: Optional[int]=None, 
+        timestamp: Optional[dt.datetime]=None
+        ) -> uuid.UUID:
+    if numerical_id is not None:
+        if numerical_id <= 99999999:
+            numerical_id_str = str(numerical_id).zfill(8)
+        else: numerical_id_str = "99999999" # overflown id
+    else: numerical_id_str = "00000000"
+    if timestamp is not None:
+        timestamp_str = timestamp.strftime("%Y%m%d")
+    else: timestamp_str = "00000000"
+    uuid_str = f"{timestamp_str}{numerical_id_str}{figi}"
+    uuid_bytes = encode_string(uuid_str)
+    id = uuid.UUID(bytes=uuid_bytes)
+    return id
+
+def get_random_uuid():
+    """get random uuid"""
+    id = uuid.uuid4()
+    return id

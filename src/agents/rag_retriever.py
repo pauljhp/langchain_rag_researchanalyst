@@ -1,20 +1,13 @@
 # document retrival agent
 
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma, Qdrant
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain.chains import RetrievalQA
 import chromadb
 from typing import Literal, List, Dict
-import numpy as np
+# import numpy as np
 import os
-
-
-embedding_model = AzureOpenAIEmbeddings(model=os.environ.get("DEFAULT_EMBEDDING_MODEL"))
-
-chroma_client = chromadb.HttpClient(
-    host=os.environ.get("CHROMADB_ENDPOINT"), 
-    port=os.environ.get("CHROMADB_PORT"))
-VectorStore = Literal["chroma", "neo4j"]
+import drivers
 
 
 def chroma_retrieve_documents(
@@ -22,9 +15,9 @@ def chroma_retrieve_documents(
         query: str,
         n_results: int,
         filter: Dict,
-        embedding_model=embedding_model
+        embedding_model=drivers.EmbeddingModel.default_embedding_model
         ) -> List[Dict]:
-    collection = chroma_client.get_collection(db_name)
+    collection = drivers.VectorDBClients.chroma_client.get_collection(db_name)
     query_embedding = embedding_model.embed_query(query)
     res = collection.query(
         query_embedding,
@@ -44,16 +37,22 @@ class Retriever:
     def __init__(
             self,
             database_name: str, 
-            vector_store: VectorStore="chroma",
+            vector_store: drivers.VectorDBTypes="qdrant",
             filter: Dict={},
             top_k: int=30
             ):
         match vector_store:
             case "chroma":
                 db = Chroma(
-                    client=chroma_client, 
+                    client=drivers.VectorDBClients.chroma_client, 
                     collection_name=database_name, 
-                    embedding_function=embedding_model)
+                    embeddings=drivers.EmbeddingModel.default_embedding_model)
+            case "qdrant":
+                db = Qdrant(
+                    client=drivers.VectorDBClients.qdrant_client,
+                    collection_name=database_name,
+                    embeddings=drivers.EmbeddingModel.default_embedding_model
+                    )
             case _:
                 raise NotImplementedError
 
