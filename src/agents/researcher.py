@@ -19,9 +19,13 @@ from langchain.tools import Tool
 from langchain_community.utilities.google_search import GoogleSearchAPIWrapper
 import functools
 from langchain.tools import Tool
-from agents.rag_retriever import chroma_retrieve_documents
+from agents.rag_retriever import chroma_retrieve_documents, qdrant_retrieve_documents
 from langgraph.graph import StateGraph, END
 from utils import DBConfig
+from qdrant_client.http.models import (
+    Filter,
+    FieldCondition, MatchValue, Range, DatetimeRange, ValuesCount
+)
 # from collections import namedtuple
 
 
@@ -68,7 +72,20 @@ def get_chroma_retrieval_tool(db_name: str, filter: Dict):
             filter=filter,
             n_results=5
         ),
-        description=f"retrieve relevant information from the {db_name} database. This tool takes only one argument which is a string."
+        description=f"retrieve relevant information from the {db_name} collection in chromadb. This tool takes only one argument which is a string."
+    )
+    return doc_retrieval_tool
+
+def get_qdrant_retrieval_tool(db_name: str, filter: Filter):
+    doc_retrieval_tool = Tool(
+        name="doc_retrieval",
+        func=lambda x: qdrant_retrieve_documents(
+            db_name,
+            query=x,
+            filter=filter,
+            n_results=5
+        ),
+        description=f"retrieve relevant information from the {db_name} collection, from the qdrant store. This tool takes only one argument which is a string."
     )
     return doc_retrieval_tool
 
