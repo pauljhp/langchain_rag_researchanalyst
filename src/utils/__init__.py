@@ -130,7 +130,7 @@ class Chunker:
                         chunk_overlap=chunk_size // 10
                     )
             case "tiktoken":
-                self.chunker = CharacterTextSplitter.from_tiktoken_encoder(
+                self.chunker = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
                     "cl100k_base", # this is the encoder tha works with GPT 3.5 and GPT 4
                     chunk_size=chunk_size,
                     chunk_overlap=chunk_size // 10
@@ -145,7 +145,6 @@ class Chunker:
                 return self.chunker.split_text(text)
             case _:
                 raise NotImplementedError
-
 
 
 #####################################################

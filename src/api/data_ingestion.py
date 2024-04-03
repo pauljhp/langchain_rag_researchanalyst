@@ -4,6 +4,7 @@ from tools.web_browsing import URLCrawl, UrlContainer
 import drivers
 from langchain_community.vectorstores import Chroma, neo4j_vector
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+from langchain.docstore.document import Document
 from typing import Literal, List, Dict, Any
 import os
 from langchain_community.document_loaders.merge import MergedDataLoader
@@ -36,7 +37,9 @@ def greedy_ingest_data_from_urls(
         additional_metadata=additional_metadata
         )
     
-def load_data_from_urls(urls: List[str]):
+def load_data_from_urls(
+        urls: List[str],
+        chunk_size: int=1000):
     web_pdfs, web_pages, local_pdfs = [], [], []
     for url in urls:
         if utils.detect_url_type(url) == "url":
@@ -47,8 +50,9 @@ def load_data_from_urls(urls: List[str]):
             elif utils.detect_url_type(url) == "localpdf":
                 local_pdfs.append(url)
     web_loader = utils.doc_loaders.CustomDocumentLoaders.load_urls(web_pages)
-    # FIXME - add chunking
     data = web_loader.load()
+    chunker = utils.Chunker(chunk_size=chunk_size)
+    # TODO - handel mixed inputs with documentloader and unstructured
     for pdf_url in web_pdfs:
         try:
             loaded = utils.doc_loaders.CustomDocumentLoaders.load_web_pdf(pdf_url)
@@ -56,14 +60,21 @@ def load_data_from_urls(urls: List[str]):
         except Exception as e:
             print(f"{url} not loaded, {e}")
             pass
-    return data
+    chunked_data = []
+    for entry in data:
+        chunked_texts = chunker.split_text(entry.page_content)
+        chunked_docs = [Document(page_content=text, metadata=entry.metadata) 
+                        for text in chunked_texts]
+        chunked_data += chunked_docs
+    return chunked_data
 
 def ingest_data_from_urls(
         urls: List[str], 
         db_name: str, 
         db_driver: drivers.VectorDBClients,
+        chunk_size: int=1000,
         additional_metadata: Dict[str, Any]={}):
-    data = load_data_from_urls(urls)
+    data = load_data_from_urls(urls, chunk_size=chunk_size)
     match db_driver:
         case "chromadb":
             drivers.write_doc_to_chromadb(
@@ -78,7 +89,7 @@ def ingest_data_from_urls(
             texts = [d.page_content for d in data]
             data = [d.dict() for d in data]
             embeddings = embedding_model.embed_documents(texts)
-            embeddding_dims = len(embeddings[0])
+            embedding_dims = len(embeddings[0])
             existing_collections = [d.get("name") for d in 
                     drivers.VectorDBClients.qdrant_client\
                         .get_collections().model_dump()\
@@ -86,7 +97,7 @@ def ingest_data_from_urls(
             if db_name not in existing_collections:
                 drivers.VectorDBClients.qdrant_client.create_collection(
                     collection_name=db_name,
-                    vectors_config=VectorParams(size=embeddding_dims, distance=Distance.DOT)
+                    vectors_config=VectorParams(size=embedding_dims, distance=Distance.DOT)
                 ) # TODO - refactor configs into utils
             drivers.write_doc_to_qdrant(
                 db_name,

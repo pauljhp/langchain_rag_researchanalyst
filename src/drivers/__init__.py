@@ -17,7 +17,7 @@ from collections import namedtuple
 from abc import ABCMeta, abstractmethod
 import itertools
 from qdrant_client.models import PointStruct
-
+from qdrant_client.http.models import Distance, VectorParams
 
 
 VectorDBTypes = Literal["chromadb", "qdrant", "azuresearch", "auradb"]
