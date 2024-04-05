@@ -4,10 +4,14 @@ from langchain_community.vectorstores import Chroma, Qdrant
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain.chains import RetrievalQA
 import chromadb
-from typing import Literal, List, Dict
+from typing import Literal, List, Dict, Optional
 # import numpy as np
 import os
 import drivers
+from qdrant_client.http.models import (
+    Filter, 
+    # FieldCondition, MatchValue, Range, DatetimeRange, ValuesCount
+    )
 
 
 def chroma_retrieve_documents(
@@ -25,6 +29,23 @@ def chroma_retrieve_documents(
         n_results=n_results
     )
     return res
+
+def qdrant_retrieve_documents(
+        db_name: str,
+        query: str,
+        n_results: int,
+        filter: Optional[Filter]=None,
+        embedding_model=drivers.EmbeddingModel.default_embedding_model
+    ):
+    query_embedding = embedding_model.embed_query(query)
+    client = drivers.VectorDBClients.qdrant_client
+    search_res = client.search(
+        collection_name=db_name,
+        query_vector=query_embedding,
+        query_filter=filter,
+        limit=n_results
+    )
+    return search_res
     
 class Retriever:
     # FIXME - change to fetch from environment vars
