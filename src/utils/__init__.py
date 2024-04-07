@@ -13,6 +13,8 @@ import datetime as dt
 import numpy as np
 import base64
 import hashlib
+import pdfplumber
+from tempfile import TemporaryDirectory
 
 
 #####################################################
@@ -34,6 +36,8 @@ DBConfig = namedtuple(
 seperators = ["\t", "\n", "\n\n", " ", "\r"]
 
 ChunkingStrategy = Literal["semantic", "tiktoken", "recursive", "character"]
+
+tmp_dir = TemporaryDirectory()
 
 #####################################################
 ################## shared classes ###################
@@ -221,3 +225,26 @@ def get_random_uuid():
     """get random uuid"""
     id = uuid.uuid4()
     return id
+
+def pdf_page_has_table(page) -> bool:
+    lines = page.lines
+    text = page.extract_text()
+    has_table = bool(lines) and bool(text)
+    if has_table: return True
+    else:
+        table_settings = {
+                "vertical_strategy": "text", # or 'lines'
+                "horizontal_strategy": "text", # or 'lines'
+            }
+        table = page.extract_table(table_settings)
+        if table:
+            return True
+    return False
+
+def pdf_has_table(filepath: str) -> bool:
+    with pdfplumber.open(filepath) as pdf:
+        for page in pdf.pages:
+            has_table = pdf_page_has_table(page)
+            if has_table:
+                return True
+    return False

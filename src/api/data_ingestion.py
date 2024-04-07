@@ -17,25 +17,7 @@ chroma_client = drivers.VectorDBClients.chroma_client
 
 VectorStore = Literal["chroma", "neo4j"]
 
-def greedy_ingest_data_from_urls(
-        urls: List[str], 
-        db_name: str, 
-        depth: int=2,
-        additional_metadata: Dict[str, Any]={},
-        browser: Literal["selenium", "requests"]="selenium"):
-    url_containers = [
-        UrlContainer(url, None, None, 0, i, None) 
-        for i, url in enumerate(urls)]
-    match browser:
-        case "requests": data = URLCrawl.greedy_get_all_links(url_containers, "requests", depth)
-        case "selenium": data = URLCrawl.greedy_get_all_links(url_containers, "selenium", depth)
-    
-    drivers.write_doc_to_db(
-        db_name,
-        data,
-        db_driver=chroma_client,
-        additional_metadata=additional_metadata
-        )
+
     
 def load_data_from_urls(
         urls: List[str],
@@ -71,7 +53,7 @@ def load_data_from_urls(
 def ingest_data_from_urls(
         urls: List[str], 
         db_name: str, 
-        db_driver: drivers.VectorDBClients,
+        db_driver: drivers.VectorDBTypes="qdrant",
         chunk_size: int=1000,
         additional_metadata: Dict[str, Any]={}):
     data = load_data_from_urls(urls, chunk_size=chunk_size)
@@ -105,4 +87,67 @@ def ingest_data_from_urls(
                 data,
                 embeddings,
                 ids
+                )
+
+def greedy_load_data_from_urls(
+        urls: List[str], 
+        depth: int=2,
+        additional_metadata: Dict[str, Any]={},
+        browser: Literal["selenium", "requests"]="selenium",
+        chunk_size: int=1000):
+    url_containers = [
+        UrlContainer(url, None, None, 0, i, None) 
+        for i, url in enumerate(urls)]
+    match browser:
+        case "requests": data = URLCrawl.greedy_get_all_links(url_containers, "requests", depth)
+        case "selenium": data = URLCrawl.greedy_get_all_links(url_containers, "selenium", depth)
+    chunker = utils.Chunker(chunk_size=chunk_size)
+    chunked_data = []
+    for entry in data:
+        chunked_texts = chunker.split_text(entry.page_content)
+        chunked_docs = [Document(page_content=text, metadata=entry.metadata | additional_metadata) 
+                        for text in chunked_texts]
+        chunked_data += chunked_docs
+    return chunked_data
+
+def greedy_ingest_data_from_urls(
+        urls: List[str], 
+        db_name: str, 
+        depth: int=2,
+        additional_metadata: Dict[str, Any]={},
+        db_driver: drivers.VectorDBTypes="qdrant",
+        browser: Literal["selenium", "requests"]="selenium",
+        chunk_size: int=1000):
+    data = greedy_load_data_from_urls(
+        urls, depth, additional_metadata, 
+        browser, chunk_size)
+    match db_driver:
+        case "chromadb":
+            drivers.write_doc_to_chromadb(
+                db_name,
+                data,
+                db_driver=chroma_client,
+                additional_metadata=additional_metadata
+                )
+        case "qdrant":
+            client = drivers.VectorDBClients.qdrant_client
+            metadatas = [additional_metadata for d in data]
+            ids = [str(utils.get_random_uuid()) for _ in data]
+            texts = [d.page_content for d in data]
+            embeddings = embedding_model.embed_documents(texts)
+            embedding_dims = len(embeddings[0])
+            existing_collections = drivers.get_existing_collection(
+                client, db_type="qdrant"
+            )
+            if db_name not in existing_collections:
+                client.create_collection(
+                    collection_name=db_name,
+                    vectors_config=VectorParams(size=embedding_dims, distance=Distance.DOT)
+                ) # TODO - refactor configs into utils
+            drivers.write_doc_to_qdrant(
+                db_name=db_name,
+                metadatas=metadatas,
+                documents=data,
+                embeddings=embeddings,
+                ids=ids
                 )

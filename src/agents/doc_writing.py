@@ -1,11 +1,10 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, Optional, Annotated, List
-from tools.code_execution import python_repl
 from langchain_core.tools import tool
 from typing_extensions import TypedDict
 from utils.create_agent import create_agent, create_team_supervisor, agent_node
-from tools.code_execution import python_repl
+from tools.code_execution import run_python_code
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 import functools
 from langchain_openai.chat_models import AzureChatOpenAI
@@ -141,7 +140,7 @@ note_taking_node = functools.partial(
 
 chart_generating_agent = create_agent(
     llm,
-    [read_document, python_repl],
+    [read_document, run_python_code],
     "You are a data viz expert tasked with generating charts for a research project."
     "{current_files}",
 )

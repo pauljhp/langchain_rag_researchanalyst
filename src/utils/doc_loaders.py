@@ -1,25 +1,34 @@
 from typing import Dict, List, Collection
-
 from unstructured.partition.pdf import partition_pdf
 from unstructured.staging.base import elements_to_json
 from unstructured.partition.html import partition_html
 from langchain_community.document_loaders import PyMuPDFLoader, OnlinePDFLoader
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.document_loaders.sitemap import SitemapLoader
-from langchain_community.document_loaders import SeleniumURLLoader, UnstructuredURLLoader
+from langchain_community.document_loaders import SeleniumURLLoader, UnstructuredURLLoader, UnstructuredPDFLoader
 from langchain_core.documents.base import Document
 from unstructured.documents.elements import Element
 from urllib.parse import urlparse, urlunsplit
 from pathlib import Path
 import validators
 import requests
-from typing import Optional, List
+from typing import Optional, List, Literal
+import utils
+
+
+tmp_dir = utils.tmp_dir
 
 class Config:
     strategy = "hi_res" # Strategy for analyzing PDFs and extracting table structure
     model_name = "yolox"
 
-def load_pdf_after_download(pdf_url: str, referer: Optional[str]=None):
+PdfLoadMode = ["unstructured", "textonly"]
+
+def load_pdf_after_download(
+        pdf_url: str, 
+        referer: Optional[str]=None,
+        ):
+    """downloads the pdf from a url then load it"""
     parsed_url = urlparse(pdf_url)
     if referer is None:
         referer = urlunsplit((parsed_url.scheme, parsed_url.netloc, "", "", ""))
@@ -32,13 +41,32 @@ def load_pdf_after_download(pdf_url: str, referer: Optional[str]=None):
 
     # Check if the request was successful
     if response.status_code == 200:
-        with open('local_copy.pdf', 'wb') as f:
+        with open(f'{tmp_dir.name}/local_copy.pdf', 'wb') as f:
             f.write(response.content)
-            print("downloaded file to local directory")
-        loaded_pdf = PyMuPDFLoader('local_copy.pdf').load()
+        has_table = utils.pdf_has_table(f'{tmp_dir.name}/local_copy.pdf')
+        if has_table: # use unstructured to load if has table
+            loaded_pdf = UnstructuredPDFLoader(
+                f'{tmp_dir.name}/local_copy.pdf',
+                mode="elements",
+                infer_table_structure=True, 
+                hi_res_model_name="detectron2_onnx", 
+                chunking_strategy="by_title",
+                 # TODO - save config to env variables
+                strategy="hi_res").load()
+            for entry in loaded_pdf:
+                drop_fields = ['coordinates', 'file_directory', 'filename']
+                for fld in drop_fields:
+                    if fld in entry.metadata.keys():
+                        entry.metadata.pop(fld)
+                entry.metadata.update({"source": pdf_url})
+                if entry.metadata["category"] == "Table":
+                    if entry.metadata["text_as_html"]:
+                        entry.page_content = entry.metadata["text_as_html"]
+
+        else:
+            loaded_pdf = PyMuPDFLoader(f'{tmp_dir.name}/local_copy.pdf').load()
         if Path("local_copy.pdf").exists():
             Path("local_copy.pdf").unlink() # remove local copy
-            print("removed local copy")
     return loaded_pdf
 
 
@@ -51,7 +79,7 @@ class CustomDocumentLoaders:
     # def load_word:
     
     @staticmethod
-    def load_pdf(filename: str) -> List[Element]:
+    def load_local_pdf(filename: str) -> List[Element]:
         """load pdf files stored locally"""
         elements = partition_pdf(
             filename=filename, 
@@ -73,15 +101,14 @@ class CustomDocumentLoaders:
         """Useful for loading pdf files hosted on the web"""
         status_code = requests.head(url).status_code
         if status_code >= 400: # need to download pdf
-            print("downloading pdf")
             parsed_url = urlparse(url)
             if "viewer" in parsed_url.path and "file" in parsed_url.query:
                 referer = urlunsplit((parsed_url.scheme, parsed_url.netloc, parsed_url.path, "", ""))
                 pdf_path = parsed_url.query.replace("file=", "")
                 reconstructed_url = urlunsplit((parsed_url.scheme, parsed_url.netloc, pdf_path, "", ""))
-                loaded_pdf = load_pdf_after_download(reconstructed_url, referer)
+                loaded_pdf = load_pdf_after_download(reconstructed_url)
             else:
-                loaded_pdf = load_pdf_after_download(url)
+                loaded_pdf = load_pdf_after_download(pdf_url=url, referer=referer)
             return loaded_pdf
         else:
             try:

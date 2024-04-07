@@ -142,14 +142,39 @@ class ChromaHierachicalVectorDB(BaseHierarchicalVectorDB):
             embeddings = self.embedding_model.embed_documents(documents)
             ids = [f"{id_prefix}_{level_name}_{i}" for i in range(len(splitted_documents))]
 
+def get_existing_collection(
+        client: Union[chromadb.Client, qdrant_client.QdrantClient],
+        db_type: VectorDBTypes="qdrant",
+    ) -> List[str]:
+    match db_type:
+        case "chromadb":
+            collection_objs = client.list_collections()
+            collection_names = [col.name for col in collection_objs]
+        case "qdrant":
+            collection_objs = client.get_collections()
+            available_methods = dir(collection_objs)
+            if "dict" in available_methods:
+                collection_names = [d.get("name") for d in 
+                    client.get_collections().dict()\
+                        .get("collections")]
+            elif "model_dump" in available_methods:
+                collection_names = [d.get("name") for d in 
+                    client.get_collections().model_dump()\
+                        .get("collections")]
+        case _:
+            raise NotImplementedError("{db_type} is not implemented!")
+    return collection_names
+
+
 def write_doc_to_qdrant(
         db_name: str,
         metadatas: List[Dict],
-        data: List[Dict], # dict of the actual data
+        documents: List[base.Document], # dict of the actual data
         embeddings: List[List[int]],
         ids: Optional[Union[List[int], List[str]]]
     ) -> None:
-    payloads = [metadata | d for metadata, d in zip(metadatas, data)]
+    payloads = [{"metadata": metadata | d.metadata, "page_content": d.page_content} 
+                for metadata, d in zip(metadatas, documents)]
     points = [PointStruct(id=id, vector=vector, payload=payload) 
         for id, vector, payload in zip(ids, embeddings, payloads)]
     VectorDBClients.qdrant_client.upsert(
@@ -176,7 +201,8 @@ def write_doc_to_chromadb(
         chunk_size=chunk_size, 
         chunk_overlap=chunk_size // 10)
     # TODO - implement logic for neo4j ingestion
-    existing_collection_names = [col.name for col in db_driver.list_collections()]
+    client = db_driver
+    existing_collection_names = get_existing_collection(db_driver, db_type="chromadb")
     
     def get_collection(db_name=db_name):
         if db_name in existing_collection_names:
@@ -222,3 +248,5 @@ def write_doc_to_chromadb(
             else:
                 collection = get_collection(f"{db_name}_{counter // 200000}")
                 counter = write_docs(document, id, counter)
+
+

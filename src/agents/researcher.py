@@ -2,7 +2,7 @@
 # import uuid
 from typing import Annotated, List, Tuple, Union, Dict, Optional
 # import matplotlib.pyplot as plt
-from langchain_community.document_loaders import WebBaseLoader
+# from langchain_community.document_loaders import WebBaseLoader
 # from langchain_community.tools.tavily_search import TavilySearchResults
 # from langchain_core.tools import tool
 # from langsmith import trace
@@ -11,7 +11,6 @@ import operator
 from typing_extensions import TypedDict
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from utils.create_agent import create_agent, create_team_supervisor, agent_node
-from tools.code_execution import python_repl
 from api.data_ingestion import load_data_from_urls
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_openai.chat_models import AzureChatOpenAI
@@ -91,11 +90,13 @@ def get_qdrant_retrieval_tool(db_name: str, filter: Filter):
 
 
 # agents
-def get_search_node(db_configs: List[DBConfig]):
+def get_search_node(db_configs: Dict[str, List[DBConfig]]):
     retrieval_tools = []
-    for db_config in db_configs:
+    for db_config in db_configs.get("chromadb"):
         retrieval_tool = get_chroma_retrieval_tool(**db_config._asdict())
         retrieval_tools.append(retrieval_tool)
+    for db_config in db_configs.get("qdrant"):
+        retrieval_tool = get_qdrant_retrieval_tool(**db_config._asdict())
     
     search_agent = create_agent(
         llm_gpt35_16k,
@@ -127,6 +128,7 @@ supervisor_agent = create_team_supervisor(
 
 def get_research_graph(dbconfigs: List[DBConfig]):
     retrievers = []
+    # FIXME - add qdrant database
     for dbconfig in dbconfigs:
         retriever = get_chroma_retrieval_tool(*dbconfig)
         retrievers.append(retriever)
