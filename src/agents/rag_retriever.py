@@ -140,13 +140,15 @@ class Retriever:
                 self.db = Qdrant(
                     client=drivers.VectorDBClients.qdrant_client,
                     collection_name=database_name,
-                    embeddings=drivers.EmbeddingModel.default_embedding_model
+                    embeddings=drivers.EmbeddingModel.default_embedding_model,
                     )
             case "azuresearch":
                 self.db = drivers.VectorDBClients.azure_search_client_rh # Azure search takes an endpoint instead of a client object
             case _:
                 raise NotImplementedError
         self.memory = self._get_memory()
+        self.filter = filter
+        self.top_k = top_k
         self.qa_chain_16k = RetrievalQA.from_chain_type(
             self.llm_16k, 
             retriever=self.db.as_retriever(
@@ -164,7 +166,7 @@ class Retriever:
             question: str
         ):
         reordering = LongContextReorder() # Important! 
-        docs = self.db.search(question, "similarity")
+        docs = self.db.search(question, "similarity", filter=self.filter, k=self.top_k)
         reordered_docs = reordering.transform_documents(docs)
         self.map_reduce_chain_ = self._get_reduce_documents_chain(
             question=question, 
