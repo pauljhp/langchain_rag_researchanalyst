@@ -1,6 +1,10 @@
 # test
 tests/
+test/
 *.ipynb
+
+# notebooks
+notebooks/
 
 # data directories
 data/

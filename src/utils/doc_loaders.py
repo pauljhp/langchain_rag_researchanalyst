@@ -65,8 +65,8 @@ def load_pdf_after_download(
 
         else:
             loaded_pdf = PyMuPDFLoader(f'{tmp_dir.name}/local_copy.pdf').load()
-        if Path("local_copy.pdf").exists():
-            Path("local_copy.pdf").unlink() # remove local copy
+        if Path(f'{tmp_dir.name}/local_copy.pdf').exists():
+            Path(f'{tmp_dir.name}/local_copy.pdf').unlink() # remove local copy
     return loaded_pdf
 
 

@@ -36,8 +36,10 @@ def join_graph(response: dict):
     return {"messages": [response["messages"][-1]]}
 
 
+def get_research_chain(dbconfigs: List[DBConfig]):
+    return get_research_graph(dbconfigs)
 
-# First add the nodes, which will do the work
+
 def get_report_writer_graph(dbconfigs: List[DBConfig]):
     super_graph = StateGraph(State)
     super_graph.add_node(

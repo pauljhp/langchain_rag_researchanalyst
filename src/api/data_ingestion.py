@@ -136,10 +136,11 @@ def greedy_ingest_data_from_urls(
             texts = [d.page_content for d in data]
             embeddings = embedding_model.embed_documents(texts)
             embedding_dims = len(embeddings[0])
-            existing_collections = drivers.get_existing_collection(
-                client, db_type="qdrant"
-            )
-            if db_name not in existing_collections:
+            # existing_collections = drivers.get_existing_collection(
+            #     client, db_type="qdrant"
+            # )
+            # if db_name not in existing_collections:
+            if not client.collection_exists(db_name):
                 client.create_collection(
                     collection_name=db_name,
                     vectors_config=VectorParams(size=embedding_dims, distance=Distance.DOT)

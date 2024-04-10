@@ -18,6 +18,7 @@ from abc import ABCMeta, abstractmethod
 import itertools
 from qdrant_client.models import PointStruct
 from qdrant_client.http.models import Distance, VectorParams
+from langchain_community.vectorstores.azuresearch import AzureSearch
 
 
 VectorDBTypes = Literal["chromadb", "qdrant", "azuresearch", "auradb"]
@@ -43,6 +44,12 @@ class VectorDBClients:
         port=None,
         api_key=os.environ.get("QDRANT_API_KEY"),
         timeout=60,
+        )
+    azure_search_client_rh = AzureSearch(
+        index_name="rh-teams-index", #"rh-bbg-vector-db-dev"
+        embedding_function=EmbeddingModel.default_embedding_model,
+        azure_search_endpoint=os.environ.get("AZURE_SEARCH_ENDPOINT"),
+        azure_search_key=os.environ.get("AZURE_SEARCH_ENDPOINT")
         )
 
 class BaseHierarchicalVectorDB(ABCMeta):

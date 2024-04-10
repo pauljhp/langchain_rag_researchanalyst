@@ -11,7 +11,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_community.document_loaders import SeleniumURLLoader, UnstructuredURLLoader
 from langchain_community.document_loaders.recursive_url_loader import RecursiveUrlLoader
-from langchain_core.documents import base
 import numpy as np
 from abc import ABC, abstractmethod, abstractclassmethod
 from bs4 import BeautifulSoup
@@ -20,6 +19,9 @@ from urllib.parse import urlparse, urlsplit, urljoin
 from collections import namedtuple
 from utils import PriorityQueueItem, PriorityQueue, Queue, Stack
 import validators
+
+
+
 
 
 
@@ -93,19 +95,17 @@ def get_embedding_model(model_name: str="text-embedding"):
 def is_valid_url(url: str) -> bool:
     return validators.url(url)
 
-def load_urls(urls: List[str]) -> List[base.Document]:
+def load_urls(urls: List[str]):
     urls = [url for url in urls if is_valid_url(url)]
     try:
         loader = SeleniumURLLoader(urls)
-        data = loader.load()
+        return loader.load()
     except:
         loader = UnstructuredURLLoader(urls)
-        data = loader.load()
-    # TODO - add url source
-    return data
+        return loader.load()
 
 def html2text(html: str) -> str:
-    soup = BeautifulSoup(html, features="lxml")
+    soup = BeautifulSoup(html, parser="lxml")
     text = " ".join([element.stripped_strings for element in soup.find_all("*")])
     return text
 
@@ -403,7 +403,7 @@ class URLCrawl:
                 while len(queue) > 0:
                     url_obj = queue.pop()
                     urls.append(url_obj.url)
-                # print(urls)
+                print(urls)
                 data += load_urls(urls)
         return data
 

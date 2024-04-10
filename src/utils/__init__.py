@@ -1,4 +1,4 @@
-from typing import NamedTuple, List, Tuple, Optional, Any, Union, Literal
+from typing import NamedTuple, List, Tuple, Optional, Any, Union, Literal, Dict
 from collections import namedtuple, OrderedDict, deque
 import heapq
 import tiktoken
@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from pathlib import Path
 from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain_experimental.text_splitter import SemanticChunker
+from langchain.docstore.document import Document
 import uuid
 import datetime as dt
 import numpy as np
@@ -15,6 +16,7 @@ import base64
 import hashlib
 import pdfplumber
 from tempfile import TemporaryDirectory
+import itertools
 
 
 #####################################################
@@ -248,3 +250,24 @@ def pdf_has_table(filepath: str) -> bool:
             if has_table:
                 return True
     return False
+
+def create_document(
+    page_content: str,
+    metadata: Dict[str, Any]
+    ) -> Document:
+    document = Document(page_content=page_content, metadata=metadata)
+    return document
+
+def combine_metadata(
+        source_metadata: List[Dict[str, Any]],
+    ) -> Dict[str, List[Any]]:
+    keys = np.unique(list(
+        itertools.chain(
+            *[list(elem.keys()) for elem in source_metadata]
+            )
+        ))
+    consolidated_metadata = {
+        key: [elem.get(key) for elem in source_metadata]
+        for key in keys
+    }
+    return consolidated_metadata
