@@ -105,7 +105,7 @@ def load_urls(urls: List[str]):
         return loader.load()
 
 def html2text(html: str) -> str:
-    soup = BeautifulSoup(html, parser="lxml")
+    soup = BeautifulSoup(html, features="lxml")
     text = " ".join([element.stripped_strings for element in soup.find_all("*")])
     return text
 
@@ -140,11 +140,13 @@ class BaseWebBrowser(ABC):
     def recursive_get_text(self):
         raise NotImplementedError
     
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def find_links(self):
         raise NotImplementedError
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def find_input_forms(self):
         raise NotImplementedError
 
@@ -161,8 +163,12 @@ class SeleniumWebBrowser(BaseWebBrowser):
     def recursive_get_text(self, element: webdriver.remote.webelement.WebElement):
         match element.tag_name:
             case "a":
-                html = element.get_attribute("innerHTML").strip()
-                text = html2text(html)
+                text = element.text.strip()
+                if not bool(text): # text embedded in innerHTML
+                    html = element.get_attribute("innerHTML").strip()
+                    text = html2text(html)
+            case "button":
+                text = element.text.strip()
             case _:
                 text = element.text.strip()
         for child in element.find_elements(by=By.XPATH, value="./*"):
@@ -173,31 +179,64 @@ class SeleniumWebBrowser(BaseWebBrowser):
 
     def _find_links(self, url: str) -> List[Dict[str, Any]]:
         """find the links and buttons on a webpage
-        
+        Buttons with outbound links will be included too
         :return: List of dictionary"""
         self.driver.get(url)
         if self.driver.current_url != url: # redirected
             WebDriverWait(self.driver, 5)
         links = self.driver.find_elements(by=By.XPATH, value="//a")
         buttons = self.driver.find_elements(by=By.XPATH, value="//button")
-        res = links + buttons 
+        links_and_buttons = links + buttons 
         res = [
             UrlContainer(
                 id=i,
-                text=self.recursive_get_text(link),
-                object=link,
-                url=link.get_attribute("href"),
+                text=self.recursive_get_text(elem),
+                object=elem,
+                url=elem.get_attribute("href"),
                 level=1,
                 metadata=None,
-                # visited=False
             )
 
-            for i, link in enumerate(res)]
+            for i, elem in enumerate(links_and_buttons)
+            if elem.get_attribute("href") is not None]
         return res
 
     @classmethod
-    def find_links(cls, url: str, driver: Optional[webdriver.chrome.webdriver.WebDriver]=None) -> List[Dict[str, Any]]:
+    def find_links(cls, 
+                   url: str, 
+                   driver: Optional[webdriver.chrome.webdriver.WebDriver]=None
+                   ) -> List[Dict[str, Any]]:
         return cls(driver)._find_links(url)
+    
+    def _find_buttons(self, url: str) -> List[Dict[str, Any]]:
+        """find the buttons without an outbound link
+
+        :return: List of dictionary"""
+        self.driver.get(url)
+        if self.driver.current_url != url: # redirected
+            WebDriverWait(self.driver, 5)
+        buttons = self.driver.find_elements(by=By.XPATH, value="//button")
+        res = [
+            UrlContainer(
+                id=i,
+                text=self.recursive_get_text(elem),
+                object=elem,
+                url=elem.get_attribute("href"),
+                level=1,
+                metadata=None,
+            )
+
+            for i, elem in enumerate(buttons)
+            if elem.get_attribute("href") is None and
+             bool(self.recursive_get_text(elem))]
+        return res
+
+    @classmethod
+    def find_buttons(cls, 
+                   url: str, 
+                   driver: Optional[webdriver.chrome.webdriver.WebDriver]=None
+                   ) -> List[Dict[str, Any]]:
+        return cls(driver)._find_buttons(url)
 
     def _find_input_forms(self, url: str):
         """find the input areas on a webpage"""
@@ -245,6 +284,14 @@ class SeleniumWebBrowser(BaseWebBrowser):
             return cls(driver)._get_outbound_links(url)
         else:
             return cls()._get_outbound_links(url)
+
+    def _get_current_page_content(self) -> str:
+        text = self.driver.find_elements(by=By.XPATH, value="//html")[0].text
+        return text
+    
+    @classmethod
+    def get_current_page_content(cls) -> str:
+        return cls._get_current_page_content()
 
     def _get_link_content(
             self,
