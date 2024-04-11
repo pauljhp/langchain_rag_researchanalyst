@@ -1,25 +1,63 @@
 from typing import Any, Callable, List, Optional, TypedDict, Union
-
+from langchain.agents.format_scratchpad.openai_tools import (
+    format_to_openai_tool_messages)
 from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
+from langchain.chains.combine_documents.reduce import ReduceDocumentsChain
+from langchain.tools import Tool
+from langchain.memory import ConversationBufferMemory, SimpleMemory
+from pydantic import BaseModel
 
+
+document_reducer = ReduceDocumentsChain(
+    name="document_reducer",
+    memory=ConversationBufferMemory(
+        memory_key="message_history", # default is "chat_history"
+        return_messages=True
+    )
+)
 
 def create_agent(
-    llm: ChatOpenAI,
+        system_prompt: str,
+        tools: List[Tool],
+        llm: Union[AzureChatOpenAI, ChatOpenAI],
+        response_format: BaseModel, 
+        response_parser: Callable
+    ):
+    input = {
+        "input": lambda x: x["input"],
+        "agent_scratchpad": lambda x: format_to_openai_tool_messages(x["intermediate_steps"])
+        }
+    llm_with_tools = llm.bind(tools=tools)
+    prompt = ChatPromptTemplate.from_messages(
+        SystemMessage(content=system_prompt),
+    )
+    agent = (
+        input |
+        prompt |
+        llm_with_tools |
+        response_parser
+    )
+    return agent
+
+def create_agent_executor(
+    llm: Union[AzureChatOpenAI, ChatOpenAI],
     tools: list,
     system_prompt: str,
+    team_members: List[str]
 ) -> str:
     """Create a function-calling agent and add it to the graph."""
+    team_member_str = ','.join(team_members)
     system_prompt += "\nWork autonomously according to your specialty, using the tools available to you."
     " Do not ask for clarification."
     " Your other team members (and other teams) will collaborate with you with their own specialties."
-    " You are chosen for a reason! You are one of the following team members: {team_members}."
+    f" You are chosen for a reason! You are one of the following team members: {{{team_member_str}}}."
     prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -27,11 +65,15 @@ def create_agent(
                 system_prompt,
             ),
             MessagesPlaceholder(variable_name="messages"),
+            MessagesPlaceholder(variable_name="intermediate_steps"),
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ]
     )
     agent = create_openai_functions_agent(llm, tools, prompt)
-    executor = AgentExecutor(agent=agent, tools=tools)
+    executor = AgentExecutor(
+        agent=agent, 
+        tools=tools, 
+        handle_parsing_errors=True)
     return executor
 
 
