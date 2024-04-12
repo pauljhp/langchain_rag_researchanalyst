@@ -6,14 +6,12 @@ import operator
 from typing_extensions import TypedDict
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from utils.create_agent import create_agent, create_team_supervisor, agent_node
-from tools.code_execution import python_repl
-from api.data_ingestion import load_data_from_urls
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_openai.chat_models import AzureChatOpenAI
 from langchain.tools import Tool, tool
 from langchain_community.utilities.google_search import GoogleSearchAPIWrapper
 import functools
-from agents.rag_retriever import chroma_retrieve_documents
+from agents.rag_retriever import Retriever
 from langgraph.graph import StateGraph, END
 from utils import DBConfig
 
@@ -77,3 +75,9 @@ def list_buttons(url: str) -> Dict[int, str]:
     link_and_buttons["buttons"] = buttons
     buttons_to_return = {container.id: container.text for container in buttons}
     return buttons_to_return
+
+llm_16k = AzureChatOpenAI(
+        deployment_name="gpt-35-16k", 
+        model_name="gpt-35-turbo-16k", 
+        api_version="2023-07-01-preview"
+        )

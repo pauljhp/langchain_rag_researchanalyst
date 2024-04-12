@@ -49,7 +49,7 @@ class VectorDBClients:
         index_name="rh-teams-index", #"rh-bbg-vector-db-dev"
         embedding_function=EmbeddingModel.default_embedding_model,
         azure_search_endpoint=os.environ.get("AZURE_SEARCH_ENDPOINT"),
-        azure_search_key=os.environ.get("AZURE_SEARCH_ENDPOINT")
+        azure_search_key=os.environ.get("AZURE_SEARCH_KEY")
         )
 
 class BaseHierarchicalVectorDB(ABCMeta):

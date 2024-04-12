@@ -24,3 +24,12 @@ class ChatSession:
     def session_history(
             self) -> BaseChatMessageHistory:
         return self._history
+
+    @session_history.deleter
+    def session_history(self) -> None:
+        STORE.pop(self.session_id)
+
+    def clear_chat(self):
+        """garbage collection. Clear a session from memory"""
+        STORE.pop(self.session_id)
+        
