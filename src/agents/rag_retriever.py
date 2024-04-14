@@ -125,8 +125,8 @@ class Retriever:
 
     def __init__(
             self,
-            database_name: str, 
             vector_store: drivers.VectorDBTypes="qdrant",
+            database_name: Optional[str]=None, 
             filter: Dict={},
             top_k: int=30
             ):

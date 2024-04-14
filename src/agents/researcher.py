@@ -12,7 +12,6 @@ from typing_extensions import TypedDict
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from utils.create_agent import create_agent, create_team_supervisor, agent_node
 from api.data_ingestion import load_data_from_urls
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_openai.chat_models import AzureChatOpenAI
 from langchain.tools import Tool
 from langchain_community.utilities.google_search import GoogleSearchAPIWrapper
@@ -25,6 +24,7 @@ from qdrant_client.http.models import (
     Filter,
     FieldCondition, MatchValue, Range, DatetimeRange, ValuesCount
 )
+
 # from collections import namedtuple
 
 
