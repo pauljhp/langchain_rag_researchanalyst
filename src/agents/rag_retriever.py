@@ -21,14 +21,14 @@ from langchain_core.prompts import (
     ChatPromptTemplate, 
     MessagesPlaceholder
 )
-from typing import Literal, List, Dict, Optional, Tuple
+from typing import Literal, List, Dict, Optional, Tuple, Union
 import drivers
 import utils
 from qdrant_client.http.models import (
     Filter, 
     # FieldCondition, MatchValue, Range, DatetimeRange, ValuesCount
     )
-
+from langchain_core.documents import Document
 
 def chroma_retrieve_documents(
         db_name: str,
@@ -126,9 +126,9 @@ class Retriever:
     def __init__(
             self,
             vector_store: drivers.VectorDBTypes="qdrant",
-            database_name: Optional[str]=None, 
+            database_name: Optional[Union[str, Literal["rh_bbg", "rb_portal", "rb_factset"]]]=None, 
             filter: Dict={},
-            top_k: int=30
+            top_k: int=10
             ):
         match vector_store:
             case "chroma":
@@ -143,7 +143,14 @@ class Retriever:
                     embeddings=drivers.EmbeddingModel.default_embedding_model,
                     )
             case "azuresearch":
-                self.db = drivers.VectorDBClients.azure_search_client_rh # Azure search takes an endpoint instead of a client object
+                match database_name:
+                    case None | "rh_bbg":
+                        self.db = drivers.VectorDBClients.azure_search_client_rh_bbg
+                         # Azure search takes an endpoint instead of a client object
+                    case "rh_portal":
+                        self.db = drivers.VectorDBClients.azure_search_client_rh_portal
+                    case "rh_factset":
+                        self.db = drivers.VectorDBClients.azure_search_client_rh_factset
             case _:
                 raise NotImplementedError
         self.memory = self._get_memory()
@@ -164,7 +171,7 @@ class Retriever:
     def _get_summarized_context(
             self,
             question: str
-        ):
+        ) -> List[Document]:
         reordering = LongContextReorder() # Important! 
         docs = self.db.search(question, "similarity", filter=self.filter, k=self.top_k)
         reordered_docs = reordering.transform_documents(docs)
@@ -180,7 +187,9 @@ class Retriever:
             page_content=page_conent,
             metadata=metadata
         )
-        condensed_docs.metadata = utils.combine_metadata([doc.metadata for doc in docs])
+        condensed_docs.metadata = utils.combine_metadata(
+            [doc.metadata for doc in docs]
+            )
         return condensed_docs
     
     def get_recursive_retrieval_agent(

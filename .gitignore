@@ -6,6 +6,9 @@ test/
 # notebooks
 notebooks/
 
+# configs
+src/configs/
+
 # data directories
 data/
 chroma_data/
