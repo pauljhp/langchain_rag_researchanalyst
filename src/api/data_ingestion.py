@@ -13,7 +13,7 @@ from qdrant_client.http.models import Distance, VectorParams
 
 embedding_model = AzureOpenAIEmbeddings(model=os.environ.get("DEFAULT_EMBEDDING_MODEL"))
 
-chroma_client = drivers.VectorDBClients.chroma_client
+# chroma_client = drivers.VectorDBClients.chroma_client
 
 VectorStore = Literal["chroma", "neo4j"]
 
@@ -59,6 +59,7 @@ def ingest_data_from_urls(
     data = load_data_from_urls(urls, chunk_size=chunk_size)
     match db_driver:
         case "chromadb":
+            raise NotImplementedError
             drivers.write_doc_to_chromadb(
                 db_name,
                 data,
@@ -123,6 +124,7 @@ def greedy_ingest_data_from_urls(
         browser, chunk_size)
     match db_driver:
         case "chromadb":
+            raise NotImplementedError
             drivers.write_doc_to_chromadb(
                 db_name,
                 data,
