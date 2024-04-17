@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from api.data_ingestion import greedy_ingest_data_from_urls, ingest_data_from_urls
 from api.report_writing import Impax10StepWriter
 from api.info_retrieval import answer_complex_questions, answer_simple_questions
-from utils import DBConfig
+# from utils import DBConfig
 from typing import List, Dict, Any, Literal
 import os
 
@@ -116,7 +116,7 @@ def get_answer_from_db(item: TenStepParamsContainer):
     #     dbconfigs=db_configs,
     #     recursion_limit=recursion_limit
     # )
-    answer = Impax10StepWriter.get_business_model()
+    answer = Impax10StepWriter.get_business_model(company_name)
     return answer
 
 @app.post("/v0/langchain/report-writing/ten-step-writer/competitive-advantage/")
@@ -132,7 +132,7 @@ def get_answer_from_db(item: TenStepParamsContainer):
     #     dbconfigs=db_configs,
     #     recursion_limit=recursion_limit
     # )
-    answer = Impax10StepWriter.get_competitive_advantage()
+    answer = Impax10StepWriter.get_competitive_advantage(company_name)
     return answer
 
 @app.post("/v0/langchain/report-writing/ten-step-writer/risks/")
@@ -148,7 +148,7 @@ def get_answer_from_db(item: TenStepParamsContainer):
     #     dbconfigs=db_configs,
     #     recursion_limit=recursion_limit
     # )
-    answer = Impax10StepWriter.get_risks()
+    answer = Impax10StepWriter.get_risks(company_name)
     return answer
 
 @app.post("/v0/llamaindex/get-simple-answers/")
