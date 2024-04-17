@@ -31,7 +31,7 @@ class EmbeddingModel:
         )
 
 class VectorDBClients:
-    chroma_client = chromadb.PersistentClient(path="../data/chromadata")
+    # chroma_client = chromadb.PersistentClient(path="../data/chromadata")
     
     # chromadb.HttpClient(
     #     host=os.environ.get("CHROMADB_ENDPOINT"), 
@@ -68,9 +68,6 @@ class VectorDBClients:
             index_name="rh-factset-vector-db-dev"
         )
     )
-    azure_metadata_fields = {
-        "rh-bbg-vector-db-dev": {"username", "Date"}
-    }
     azure_search_langchain_stores = dict(
         azure_search_client_rh_bbg = AzureSearch(
             index_name="rh-bbg-vector-db-dev", #"rh-teams-index"
@@ -134,60 +131,60 @@ class BaseHierarchicalVectorDB(ABCMeta):
               window_size: int):
         raise NotImplementedError
     
-class ChromaHierachicalVectorDB(BaseHierarchicalVectorDB):
-    def __init__(self, 
-            base_db_name: str, 
-            max_levels: int=3, 
-            branching_factor: int=10,
-            min_chunk_size: Optional[int]=100,
-            max_chunk_size: Optional[int]=10000,
-            embedding_model=EmbeddingModel.default_embedding_model):
-        super().__init__(base_db_name, max_levels, branching_factor, 
-                         min_chunk_size, max_chunk_size, embedding_model)
-        self.collections = {}
-        for level_name, _ in self.chunk_sizes.items():
-            self.collections[level_name] = VectorDBClients.chroma_client.create_collection(
-                f"{self.base_db_name}_{level_name}"
-            )
+# class ChromaHierachicalVectorDB(BaseHierarchicalVectorDB):
+#     def __init__(self, 
+#             base_db_name: str, 
+#             max_levels: int=3, 
+#             branching_factor: int=10,
+#             min_chunk_size: Optional[int]=100,
+#             max_chunk_size: Optional[int]=10000,
+#             embedding_model=EmbeddingModel.default_embedding_model):
+#         super().__init__(base_db_name, max_levels, branching_factor, 
+#                          min_chunk_size, max_chunk_size, embedding_model)
+#         self.collections = {}
+#         for level_name, _ in self.chunk_sizes.items():
+#             self.collections[level_name] = VectorDBClients.chroma_client.create_collection(
+#                 f"{self.base_db_name}_{level_name}"
+#             )
 
-    def write_to_collection(
-            self, 
-            current_collection: Callable,
-            splitted_documents: List[str],# splitted_documents
-            metadatas: List[Dict[Hashable, Any]],
-            ids: List[str],
-            is_leaf: bool=False,
-            ):
-        """write current level to collection. If level is index, 
-        only embeddings will be written"""
-        raise NotImplementedError
-        embeddings = self.embedding_model.embed_documents(splitted_documents)
-        current_collection.add(
-            metadatas=metadatas, 
-            ids=ids, embeddings=embeddings)
-        # FIXME - not finished
+#     def write_to_collection(
+#             self, 
+#             current_collection: Callable,
+#             splitted_documents: List[str],# splitted_documents
+#             metadatas: List[Dict[Hashable, Any]],
+#             ids: List[str],
+#             is_leaf: bool=False,
+#             ):
+#         """write current level to collection. If level is index, 
+#         only embeddings will be written"""
+#         raise NotImplementedError
+#         embeddings = self.embedding_model.embed_documents(splitted_documents)
+#         current_collection.add(
+#             metadatas=metadatas, 
+#             ids=ids, embeddings=embeddings)
+#         # FIXME - not finished
         
 
-    def write_data(self,
-                   documents: List[base.Document], 
-                   metadatas: List[Dict[Hashable, Any]],
-                   id_prefix: str):
-        raise NotImplementedError
-    # FIXME - implementation not finished
-        current_documents = documents
-        for level_name, chunk_size in self.chunk_sizes.items(): # implement a modified B+ tree
-            collection = self.collections[level_name]
-            parent_splitter = utils.Chunker(chunk_size=chunk_size)
-            _splitted_documents = [
-                parent_splitter.split_text(doc.page_content) 
-                for doc in current_documents]
-            _metadatas = [
-                [metadata for _ in docs] 
-                for docs, metadata in zip(_splitted_documents, metadatas)]
-            splitted_documents = itertools.chain(*_splitted_documents)
-            metadatas = itertools.chain(*_metadatas)
-            embeddings = self.embedding_model.embed_documents(documents)
-            ids = [f"{id_prefix}_{level_name}_{i}" for i in range(len(splitted_documents))]
+#     def write_data(self,
+#                    documents: List[base.Document], 
+#                    metadatas: List[Dict[Hashable, Any]],
+#                    id_prefix: str):
+#         raise NotImplementedError
+#     # FIXME - implementation not finished
+#         current_documents = documents
+#         for level_name, chunk_size in self.chunk_sizes.items(): # implement a modified B+ tree
+#             collection = self.collections[level_name]
+#             parent_splitter = utils.Chunker(chunk_size=chunk_size)
+#             _splitted_documents = [
+#                 parent_splitter.split_text(doc.page_content) 
+#                 for doc in current_documents]
+#             _metadatas = [
+#                 [metadata for _ in docs] 
+#                 for docs, metadata in zip(_splitted_documents, metadatas)]
+#             splitted_documents = itertools.chain(*_splitted_documents)
+#             metadatas = itertools.chain(*_metadatas)
+#             embeddings = self.embedding_model.embed_documents(documents)
+#             ids = [f"{id_prefix}_{level_name}_{i}" for i in range(len(splitted_documents))]
 
 def get_existing_collection(
         client: Union[chromadb.Client, qdrant_client.QdrantClient],
@@ -231,69 +228,69 @@ def write_doc_to_qdrant(
     )
 
 
-def write_doc_to_chromadb(
-        db_name: str, 
-        docs: List,
-        embedding_model=EmbeddingModel.default_embedding_model,
-        db_driver: Callable=VectorDBClients.chroma_client,
-        id_prefix: str="",
-        chunk_size: int=1000,
-        additional_metadata: Dict[str, Any]={},
-        verbose: bool=False,
-    ) -> None:
-    """write a list of documents to database"""
-    # FIXME - add logic to wait if rate limite is reached
-    text_splitter = RecursiveCharacterTextSplitter(
-        seperators=utils.seperators,
-        chunk_size=chunk_size, 
-        chunk_overlap=chunk_size // 10)
-    # TODO - implement logic for neo4j ingestion
-    client = db_driver
-    existing_collection_names = get_existing_collection(db_driver, db_type="chromadb")
+# def write_doc_to_chromadb(
+#         db_name: str, 
+#         docs: List,
+#         embedding_model=EmbeddingModel.default_embedding_model,
+#         db_driver: Callable=VectorDBClients.chroma_client,
+#         id_prefix: str="",
+#         chunk_size: int=1000,
+#         additional_metadata: Dict[str, Any]={},
+#         verbose: bool=False,
+#     ) -> None:
+#     """write a list of documents to database"""
+#     # FIXME - add logic to wait if rate limite is reached
+#     text_splitter = RecursiveCharacterTextSplitter(
+#         seperators=utils.seperators,
+#         chunk_size=chunk_size, 
+#         chunk_overlap=chunk_size // 10)
+#     # TODO - implement logic for neo4j ingestion
+#     client = db_driver
+#     existing_collection_names = get_existing_collection(db_driver, db_type="chromadb")
     
-    def get_collection(db_name=db_name):
-        if db_name in existing_collection_names:
-            collection = db_driver.get_collection(db_name)
-        else:
-            collection = db_driver.create_collection(db_name)
-        return collection
+#     def get_collection(db_name=db_name):
+#         if db_name in existing_collection_names:
+#             collection = db_driver.get_collection(db_name)
+#         else:
+#             collection = db_driver.create_collection(db_name)
+#         return collection
     
-    def write_docs(document, id, counter):
-        metadatas, embeddings, ids = [], [], []
-        split_docs = text_splitter.split_text(document.page_content)
-        metadata = document.metadata
-        metadata.update(additional_metadata)
-        metadatas = [metadata for _ in split_docs]
-        try:
-            embeddings = embedding_model.embed_documents(split_docs)
-        except RateLimitError:
-            time.sleep(1) # sleep for 1 second if rate limite error is encountered
-        ids = [f"{id_prefix}_{id}_chunk{i}" for i in range(1, len(split_docs)+1)]
-        collection.add(
-            documents=split_docs,
-            metadatas=metadatas,
-            ids=ids,
-            embeddings=embeddings
-        )
-        counter += len(split_docs)
-        return counter
-    collection = get_collection()
-    counter = 0 # chromadb may crash when one collection reaches > 200k docs
-    if verbose:
-        for id, document in tqdm.tqdm(enumerate(docs)):
-            if verbose: print(f"{counter} documents processed")
-            if counter <= 200000:
-                counter = write_docs(document, id, counter)
-            else:
-                collection = get_collection(f"{db_name}_{counter // 200000}")
-                counter = write_docs(document, id, counter)
-    else:
-        for id, document in enumerate(docs):
-            if verbose: print(f"{counter} documents processed")
-            if counter <= 200000:
-                counter = write_docs(document, id, counter)
-            else:
-                collection = get_collection(f"{db_name}_{counter // 200000}")
-                counter = write_docs(document, id, counter)
+#     def write_docs(document, id, counter):
+#         metadatas, embeddings, ids = [], [], []
+#         split_docs = text_splitter.split_text(document.page_content)
+#         metadata = document.metadata
+#         metadata.update(additional_metadata)
+#         metadatas = [metadata for _ in split_docs]
+#         try:
+#             embeddings = embedding_model.embed_documents(split_docs)
+#         except RateLimitError:
+#             time.sleep(1) # sleep for 1 second if rate limite error is encountered
+#         ids = [f"{id_prefix}_{id}_chunk{i}" for i in range(1, len(split_docs)+1)]
+#         collection.add(
+#             documents=split_docs,
+#             metadatas=metadatas,
+#             ids=ids,
+#             embeddings=embeddings
+#         )
+#         counter += len(split_docs)
+#         return counter
+#     collection = get_collection()
+#     counter = 0 # chromadb may crash when one collection reaches > 200k docs
+#     if verbose:
+#         for id, document in tqdm.tqdm(enumerate(docs)):
+#             if verbose: print(f"{counter} documents processed")
+#             if counter <= 200000:
+#                 counter = write_docs(document, id, counter)
+#             else:
+#                 collection = get_collection(f"{db_name}_{counter // 200000}")
+#                 counter = write_docs(document, id, counter)
+#     else:
+#         for id, document in enumerate(docs):
+#             if verbose: print(f"{counter} documents processed")
+#             if counter <= 200000:
+#                 counter = write_docs(document, id, counter)
+#             else:
+#                 collection = get_collection(f"{db_name}_{counter // 200000}")
+#                 counter = write_docs(document, id, counter)
 
 

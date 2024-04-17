@@ -29,7 +29,7 @@ class Impax10StepWriter:
     
     @classmethod
     def get_business_model(cls, company_name: str):
-        template = f"Write about the business mode of {company_name}. Structure you answers in bullet points. "
+        template = f"Write about the business model of {company_name}. Structure you answers in bullet points. "
         "consider the following: \n"
         "What are the segments of the company, what is their route to market, pricing strategy, and sales structure? \n"
         "What expansion plans does the company talk about? "
