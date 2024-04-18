@@ -1,11 +1,13 @@
 from typing import Union, List, Tuple, Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
 from api.data_ingestion import greedy_ingest_data_from_urls, ingest_data_from_urls
 from api.report_writing import Impax10StepWriter
 from api.info_retrieval import answer_complex_questions, answer_simple_questions
+from api.chat_agent import ChatSession
+from fastapi.responses import HTMLResponse
 # from utils import DBConfig
-from typing import List, Dict, Any, Literal
+from typing import List, Dict, Any, Literal, Annotated
 import os
 
 
@@ -48,6 +50,10 @@ class TenStepParamsContainer(BaseModel):
     # filters: List[Dict[str, Any]]
 
 class LlamaIndexRetrievalContainer(BaseModel):
+    question: str
+
+class ChatSessionContainer(BaseModel):
+    session_id: str
     question: str
 
 #########################################
@@ -158,16 +164,62 @@ def get_simple_answers(item: LlamaIndexRetrievalContainer):
     return response
 
 @app.post("/v0/llamaindex/get-complex-answers/")
-def get_simple_answers(item: LlamaIndexRetrievalContainer):
+def get_complex_answers(item: LlamaIndexRetrievalContainer):
     question = item.question
     response = answer_complex_questions(question)
     return response
 
+@app.post("/v0/llamaindex/chat/start_chat_session/")
+def start_session(item:ChatSessionContainer):
+    session_id = item.session_id
+    chat_session = ChatSession(session_id)
+    return {"status": "success"}
+
+@app.post("/v0/llamaindex/chat/chat/")
+def chat(item: ChatSessionContainer):
+    session_id = item.session_id
+    # chat_session = ChatSession(session_id)
+    response = ChatSession.get_reponse(session_id, item.question)
+    return response
+
+@app.post("/v0/llamaindex/chat/clear-chat-session/")
+def chat(item: ChatSessionContainer):
+    session_id = item.session_id
+    # chat_session = ChatSession(session_id)
+    ChatSession.clear_session(session_id)
+    return {"status": "success"}
 
 #########################################
 # data ingestion - put methods
 #########################################
 
+@app.post("/v0/local-ingestion/files/")
+async def create_files(files: Annotated[list[bytes], File()]):
+    return {"file_sizes": [len(file) for file in files]}
+
+@app.post("/v0/local-ingestion/uploadfile/")
+async def create_upload_files(files: list[UploadFile]):
+    for file in files:
+        file_path = os.path.join("uploads", file.filename)
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
+    return {"filenames": [file.filename for file in files]}
+
+@app.get("/v0/local-ingestion/")
+async def main():
+    content = """
+<body>
+<form action="/files/" enctype="multipart/form-data" method="post">
+<input name="files" type="file" multiple>
+<input type="submit">
+</form>
+<form action="/uploadfiles/" enctype="multipart/form-data" method="post">
+<input name="files" type="file" multiple>
+<input type="submit">
+</form>
+</body>
+    """
+    return HTMLResponse(content=content)
 # @app.put("/data-ingestion/greedy-load-url/")
 # def greedy_ingest_data(item: GreedyUrlLoaderContainer):
 #     """Greedy ingest data from a list of urls, going x layers deep in a 

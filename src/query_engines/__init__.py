@@ -1,7 +1,7 @@
 from llama_index.core import PromptTemplate
 from llama_index.llms.azure_openai import AzureOpenAI
 from llama_index.core import PromptTemplate
-from llama_index.core.tools import RetrieverTool
+from llama_index.core.tools import RetrieverTool, ToolMetadata, QueryPlanTool, QueryEngineTool
 from llama_index.core.retrievers import (
     RecursiveRetriever, BaseRetriever, RouterRetriever,
     VectorIndexRetriever)
@@ -10,9 +10,10 @@ from llama_index.core.indices.query.query_transform.base import (
     StepDecomposeQueryTransform,
 )
 import os
-from typing import Optional, Union, Any, Literal
+from typing import Optional, Union, Any, Literal, List, Dict
 from llama_index.core.query_engine import (
-    MultiStepQueryEngine, RouterQueryEngine, RetrieverQueryEngine
+    MultiStepQueryEngine, RouterQueryEngine, RetrieverQueryEngine,
+    SubQuestionQueryEngine
 )
 from llama_index.core import VectorStoreIndex
 from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding 
@@ -23,18 +24,23 @@ from llama_index.core import (
     ServiceContext,
     get_response_synthesizer
 )
+
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.vector_stores.azureaisearch import AzureAISearchVectorStore
 from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.core import Settings
+from llama_index.core import Settings, Response, QueryBundle
 from llama_index.core.selectors import LLMSingleSelector, LLMMultiSelector
 from llama_index.core.selectors import (
     PydanticMultiSelector,
     PydanticSingleSelector,
 )
+from llama_index.core.question_gen import LLMQuestionGenerator
+from llama_index.core.output_parsers import PydanticOutputParser
+from pydantic import BaseModel
 import drivers
 from qdrant_client.http.models import VectorParams, Distance
 
+    
 # Define vector parameters
 vector_params = VectorParams(
     size=1536,  # Adjust this based on your embedding size
@@ -56,6 +62,9 @@ class VectorStoreAsIndex:
 
 reader = QdrantReader(url=os.environ.get("QDRANT_ENDPOINT"), api_key="QDRANT_API_KEY", port=None)
 
+class GeneratedSubQueries(BaseModel):
+    reply: List[str]
+
 query_gen_str_with_num = """\
 You are a helpful assistant that generates multiple search queries based on a \
 single input query. Generate {num_queries} search queries, one on each line, \
@@ -66,7 +75,7 @@ If the query is best to be completed in multiple steps, break them down \
 into individual steps. \
 Only write the queries to the database for retrieving the raw data. \
 Query: {query}
-Queries:
+Reply with a json list, with a 'reply' key.
 """
 query_gen_str_wo_num = """\
 You are a helpful assistant that generates multiple search queries based on a \
@@ -78,10 +87,12 @@ If the query is best to be completed in multiple steps, break them down \
 into individual steps. \
 Only write the queries to the database for retrieving the raw data. \
 Query: {query}
-Queries:
+Reply with a json list, with a 'reply' key.
 """
+
+query_parser = PydanticOutputParser(output_cls=GeneratedSubQueries)
 query_gen_prompt_with_num = PromptTemplate(query_gen_str_with_num)
-query_gen_prompt_wo_num = PromptTemplate(query_gen_str_wo_num)
+query_gen_prompt_wo_num = PromptTemplate(query_gen_str_wo_num, output_parser=query_parser)
 
 llm = AzureOpenAI(deployment_name="gpt-35-16k", 
         model="gpt-35-turbo-16k", 
@@ -93,12 +104,12 @@ class CustomQueryEngine:
         model="text-embedding-ada-002",
         deployment_name=os.environ.get("DEFAULT_EMBEDDING_MODEL")
         )
-
-    
+    service_context = ServiceContext.from_defaults(embed_model=embed_model)
 
     def get_index(self, vector_store):
-        service_context = ServiceContext.from_defaults(embed_model=self.embed_model)
-        index = VectorStoreIndex.from_vector_store(vector_store=vector_store, service_context=service_context)
+        index = VectorStoreIndex.from_vector_store(
+            vector_store=vector_store, 
+            service_context=self.service_context)
         return index
     
     @staticmethod
@@ -144,7 +155,9 @@ class CustomQueryEngine:
             num_queries: Optional[int]=None):
         if num_queries is not None:
             response = llm.predict(
-                query_gen_prompt_with_num, query=query, num_queries=num_queries
+                query_gen_prompt_with_num, 
+                query=query, 
+                num_queries=num_queries
             )
         else:
             response = llm.predict(
@@ -158,8 +171,9 @@ class CustomQueryEngine:
         self,
         collection_name: str, 
         vector_store_type: drivers.VectorDBTypes,
+        vector_store_index_kwargs: Optional[Dict[str, Any]]={},
         retriever_type: Literal["simple", "router"]="simple"
-    ):
+    ) -> BaseRetriever:
         vector_store = self.get_vector_store(
             collection_name=collection_name, 
             vector_store_type=vector_store_type)
@@ -170,15 +184,14 @@ class CustomQueryEngine:
                     index=index,
                     similarity_top_k=5,
                     embed_model=self.embed_model,
-                    vector_store_query_mode="hybrid"
+                    vector_store_query_mode="hybrid",
+                    **vector_store_index_kwargs
                 )
             case "router":
                 retriever = self.get_router_retriever()
         return retriever
 
-    def get_router_retriever(
-        self,
-        ):
+    def get_retrieval_tools(self) -> List[RetrieverTool]:
         earnings_transcripts = RetrieverTool.from_defaults(
             retriever=self.get_retriever("earnings_transcripts_llamaindex", "qdrant"),
             description="retrieves information from company earnings transcripts. "
@@ -195,12 +208,51 @@ class CustomQueryEngine:
             retriever=self.get_retriever("reports", "qdrant"),
             description="retrieves information from company 10k and annual reports. Use this to get a detailed view of the companies. "
         )
+        tools = [earnings_transcripts, historical_internal_research, current_internal_research, company_10k]
+        return tools
+    
+    def get_query_engine_tools(self) -> List[QueryEngineTool]:
+        earnings_transcripts = QueryEngineTool(
+            query_engine=self.create_simple_query_engine("earnings_transcripts_llamaindex", "qdrant", synthesize=True),
+            metadata=ToolMetadata(
+                name="earnings_transcripts",
+                description="retrieves information from company earnings transcripts. "
+            )
+        )
+        historical_internal_research = QueryEngineTool(
+            query_engine=self.create_simple_query_engine("rh-bbg-vector-db-dev", "azuresearch", synthesize=True),
+            metadata=ToolMetadata(
+                name="historical_internal_research",
+                description="Retrieves older Impax internal research documents. Don't use this for latest information. "
+            )
+        )
+        current_internal_research = QueryEngineTool(
+            query_engine=self.create_simple_query_engine("rh-portal-vector-db-dev", "azuresearch", synthesize=True),
+            metadata=ToolMetadata(
+                name="current_internal_research",
+                description="Retrieves current Impax internal research documents. Use this for latest information. "
+            )
+        )
+        # company_annual_reports = QueryEngineTool(
+        #     query_engine=self.create_simple_query_engine("reports", "qdrant", synthesize=True),
+        #     metadata=ToolMetadata(
+        #         name="company_annual_reports",
+        #         description="retrieves information from company 10k and annual reports. Use this to get a detailed view of the companies. "
+        #     )
+        # )
+        tools = [earnings_transcripts, 
+                 historical_internal_research, current_internal_research, 
+                #  company_annual_reports
+                 ]
+        return tools
+
+    def get_router_retriever(
+        self,
+        ) -> BaseRetriever:
+        retriever_tools = self.get_retrieval_tools()
         retriever = RouterRetriever(
             selector=PydanticSingleSelector.from_defaults(llm=llm),
-            retriever_tools=[
-                earnings_transcripts, historical_internal_research,
-                current_internal_research, company_10k
-            ]
+            retriever_tools=retriever_tools
         )
         return retriever
 
@@ -208,20 +260,53 @@ class CustomQueryEngine:
             self, 
             collection_name: str,
             vector_store_type: drivers.VectorDBTypes,
-            retriever_type: Literal["simple", "router"]="simple"
+            retriever_type: Literal["simple", "router"]="simple",
+            synthesize: bool=True,
+            vector_store_index_kwargs: Optional[Dict[str, Any]]={}
             ):
-        retriever = self.get_retriever(collection_name, vector_store_type, retriever_type=retriever_type)
-
+        retriever = self.get_retriever(
+            collection_name, 
+            vector_store_type, 
+            retriever_type=retriever_type,
+            vector_store_index_kwargs=vector_store_index_kwargs)
         response_synthesizer = get_response_synthesizer(
             llm=llm,
             response_mode="tree_summarize",
+            service_context=self.service_context
         )
-        query_engine = RetrieverQueryEngine(
-            retriever=retriever,
-            response_synthesizer=response_synthesizer,
-        )
+        if synthesize:
+            query_engine = RetrieverQueryEngine(
+                retriever=retriever,
+                response_synthesizer=response_synthesizer,
+            )
+        else:
+            query_engine = RetrieverQueryEngine(
+                retriever=retriever)
         return query_engine
     
+    def create_sub_questions_query_engine(
+            self,
+    ):
+        engine_tools = self.get_query_engine_tools()
+        # question_generator = LLMQuestionGenerator(
+        #     llm=llm, 
+        #     prompt=query_gen_prompt_wo_num.partial_format(query=lambda x: x),
+        #     )
+        response_synthesizer = get_response_synthesizer(
+            llm=llm,
+            response_mode="tree_summarize",
+            service_context=self.service_context
+        )
+        query_engine = SubQuestionQueryEngine.from_defaults(
+            query_engine_tools=engine_tools,
+            llm=llm,
+            service_context=self.service_context,
+            # question_gen=question_generator,
+            response_synthesizer=response_synthesizer,
+            use_async=False
+        )
+        return query_engine
+
     def create_multi_step_query_engine(
             self, 
             collection_name: str,
