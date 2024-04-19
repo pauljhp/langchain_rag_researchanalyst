@@ -1,5 +1,6 @@
 from llama_index.core import PromptTemplate
 from llama_index.llms.azure_openai import AzureOpenAI
+# from langchain_openai import AzureChatOpenAI
 from llama_index.core import PromptTemplate
 from llama_index.core.tools import RetrieverTool, ToolMetadata, QueryPlanTool, QueryEngineTool
 from llama_index.core.retrievers import (
@@ -96,6 +97,8 @@ query_gen_prompt_wo_num = PromptTemplate(query_gen_str_wo_num, output_parser=que
 
 llm = AzureOpenAI(deployment_name="gpt-35-16k", 
         model="gpt-35-turbo-16k", 
+        temperature=0,
+        context_window=16384,
         api_version="2023-07-01-preview")
 
 
@@ -104,7 +107,10 @@ class CustomQueryEngine:
         model="text-embedding-ada-002",
         deployment_name=os.environ.get("DEFAULT_EMBEDDING_MODEL")
         )
-    service_context = ServiceContext.from_defaults(embed_model=embed_model)
+    service_context = ServiceContext.from_defaults(
+        embed_model=embed_model,
+        chunk_size_limit=1000,
+        )
 
     def get_index(self, vector_store):
         index = VectorStoreIndex.from_vector_store(
@@ -124,7 +130,7 @@ class CustomQueryEngine:
                     collection_name=collection_name, 
                     client=drivers.VectorDBClients.qdrant_client, 
                     enable_hybrid=True, 
-                    batch_size=10,
+                    batch_size=64,
                     client_kwargs=dict(vector_params=vector_params))
             case "chromadb":
                 raise NotImplementedError
@@ -182,7 +188,7 @@ class CustomQueryEngine:
             case "simple":
                 retriever = VectorIndexRetriever(
                     index=index,
-                    similarity_top_k=5,
+                    similarity_top_k=14,
                     embed_model=self.embed_model,
                     vector_store_query_mode="hybrid",
                     **vector_store_index_kwargs
