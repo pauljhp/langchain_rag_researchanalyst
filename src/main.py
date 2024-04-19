@@ -1,7 +1,7 @@
 from typing import Union, List, Tuple, Optional
 from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
-from api.data_ingestion import greedy_ingest_data_from_urls, ingest_data_from_urls
+# from api.data_ingestion import greedy_ingest_data_from_urls, ingest_data_from_urls
 from api.report_writing import Impax10StepWriter
 from api.info_retrieval import answer_complex_questions, answer_simple_questions
 from api.chat_agent import ChatSession
@@ -169,7 +169,7 @@ def get_complex_answers(item: LlamaIndexRetrievalContainer):
     response = answer_complex_questions(question)
     return response
 
-@app.post("/v0/llamaindex/chat/start_chat_session/")
+@app.post("/v0/llamaindex/chat/start-chat-session/")
 def start_session(item:ChatSessionContainer):
     session_id = item.session_id
     chat_session = ChatSession(session_id)
