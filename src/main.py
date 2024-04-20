@@ -1,5 +1,6 @@
 from typing import Union, List, Tuple, Optional
-from fastapi import FastAPI, File, UploadFile, Query
+from fastapi import (FastAPI, File, UploadFile, APIRouter, Depends,
+                    Header, HTTPException, Security)
 from pydantic import BaseModel
 # from api.data_ingestion import greedy_ingest_data_from_urls, ingest_data_from_urls
 from api.report_writing import Impax10StepWriter
@@ -13,15 +14,33 @@ from pathlib import Path
 
 
 app = FastAPI()
+print("Token:", os.environ.get("IMPAX_AI_ASSISTANT_TOKEN"))
+##################
+# token auth
+##################
+# TODO - change to 2-factor auth in the next version
 
 
-@app.get("/")
-def root():
-    return {"intro": 
-            "Welcome to Impax's AI assistant API.\n" 
-            "This AI is built with langchain, langgrah, and Azure OpenAI.",
-            "version":
-            "alpha v0.2\n"}
+# def get_token_header(x_token: str = Header(None)):
+#     if x_token != os.environ.get("IMPAX_AI_ASSISTANT_TOKEN") or x_token is None:
+#         raise HTTPException(status_code=400, detail="Invalid X-Token header")
+#     return x_token
+
+# router = APIRouter(dependencies=[Depends(get_token_header)])
+
+# @router.post("/v0/")
+# async def protected_route():
+#     return {"message": "Protected routes"}
+
+# @app.get("/")
+# def root():
+#     return {"intro": 
+#             "Welcome to Impax's AI assistant API.\n" 
+#             "This AI is built with langchain, langgrah, and Azure OpenAI.",
+#             "version":
+#             "alpha v0.2\n"}
+
+# app.include_router(router)
 
 
 #########################################
