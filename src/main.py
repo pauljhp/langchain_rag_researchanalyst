@@ -1,5 +1,5 @@
 from typing import Union, List, Tuple, Optional
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Query
 from pydantic import BaseModel
 # from api.data_ingestion import greedy_ingest_data_from_urls, ingest_data_from_urls
 from api.report_writing import Impax10StepWriter
@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 # from utils import DBConfig
 from typing import List, Dict, Any, Literal, Annotated
 import os
+from pathlib import Path
 
 
 app = FastAPI()
@@ -179,10 +180,27 @@ def start_session(item:ChatSessionContainer):
 def chat(item: ChatSessionContainer):
     session_id = item.session_id
     # chat_session = ChatSession(session_id)
-    response = ChatSession.get_reponse(session_id, item.question)
+    response = ChatSession.get_response(session_id, item.question)
     return response
 
 @app.post("/v0/llamaindex/chat/clear-chat-session/")
+def chat(item: ChatSessionContainer):
+    session_id = item.session_id
+    # chat_session = ChatSession(session_id)
+    ChatSession.clear_session(session_id)
+    return {"status": "success"}
+
+@app.post("/v0/llamaindex/chat-with-uploads/chat/")
+def chat(item: ChatSessionContainer):
+    session_id = item.session_id
+    # chat_session = ChatSession(session_id)
+    response = ChatSession.get_response(
+        session_id, item.question,
+        chat_agent_type="upload_file",
+        upload_file_dir=f"./temp/uploads/{session_id}")
+    return response
+
+@app.post("/v0/llamaindex/chat-with-uploads/clear-chat-session/")
 def chat(item: ChatSessionContainer):
     session_id = item.session_id
     # chat_session = ChatSession(session_id)
@@ -193,17 +211,36 @@ def chat(item: ChatSessionContainer):
 # data ingestion - put methods
 #########################################
 
-@app.post("/v0/local-ingestion/files/")
-async def create_files(files: Annotated[list[bytes], File()]):
-    return {"file_sizes": [len(file) for file in files]}
+@app.post("/v0/local-ingestion/{session_id}/files/")
+async def create_files(session_id: str, files: List[UploadFile] = File(...)):
+    upload_dir = Path(f"./temp/uploads/{session_id}/")
+    if not upload_dir.exists():
+        upload_dir.mkdir(parents=True, exist_ok=True)
 
-@app.post("/v0/local-ingestion/uploadfile/")
-async def create_upload_files(files: list[UploadFile]):
+    file_sizes = []
     for file in files:
-        file_path = os.path.join("uploads", file.filename)
+        file_path = upload_dir / file.filename
+        # Asynchronously write file to the designated directory
+        with open(file_path, "wb") as buffer:
+            data = await file.read()  # Read file data
+            buffer.write(data)
+            file_sizes.append(len(data))  # Append the size of the file
+
+    return {"file_sizes": file_sizes, "filenames": [file.filename for file in files]}
+
+@app.post("/v0/local-ingestion/{session_id}/uploadfile/")
+async def create_upload_files(session_id: str, files: List[UploadFile]):
+    upload_dir = Path(f"./temp/uploads/{session_id}/")
+    if not upload_dir.exists():
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+    for file in files:
+        file_path = upload_dir / file.filename
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
+            
     return {"filenames": [file.filename for file in files]}
+            
 
 @app.get("/v0/local-ingestion/")
 async def main():

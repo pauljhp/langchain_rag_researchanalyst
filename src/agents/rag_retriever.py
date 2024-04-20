@@ -29,6 +29,15 @@ from qdrant_client.http.models import (
     # FieldCondition, MatchValue, Range, DatetimeRange, ValuesCount
     )
 from langchain_core.documents import Document
+from tools.llamaindex_tools import wikipedia_tools
+from tools import google_search_tool
+from query_engines import CustomQueryEngine
+
+
+llama_index_tools = CustomQueryEngine().get_query_engine_tools()
+llama_index_tools += wikipedia_tools
+converted_llama_index_tools = [tool.to_langchain_tool() for tool in llama_index_tools]
+converted_llama_index_tools.append(google_search_tool)
 
 def chroma_retrieve_documents(
         db_name: str,
@@ -72,6 +81,7 @@ class Retriever:
         model_name="gpt-35-turbo-16k", 
         api_version="2023-07-01-preview"
         )
+    llm_with_tools = llm_16k.bind_tools(converted_llama_index_tools)
     
     def _get_memory(self, **kwargs) -> BaseMemory:
         memory = ConversationBufferMemory(**kwargs)
@@ -211,7 +221,7 @@ class Retriever:
               MessagesPlaceholder(variable_name="context"),
               ("human", "{input}")]
         )
-        runnable = prompt | self.llm_16k
+        runnable = prompt | self.llm_with_tools
         return runnable, context
 
     def get_combined_answer(self, 

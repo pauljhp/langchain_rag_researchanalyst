@@ -40,13 +40,16 @@ from llama_index.core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel
 import drivers
 from qdrant_client.http.models import VectorParams, Distance
-
+from llama_index.vector_stores.qdrant.utils import default_sparse_encoder
     
+
 # Define vector parameters
 vector_params = VectorParams(
     size=1536,  # Adjust this based on your embedding size
     distance=Distance.DOT
 )
+
+default_sparse_encoder_fn = default_sparse_encoder("naver/efficient-splade-VI-BT-large-query")
 
 class VectorStoreAsIndex:
     """Vector store Index for Llama-Index"""
@@ -100,13 +103,13 @@ llm = AzureOpenAI(deployment_name="gpt-35-16k",
         temperature=0,
         context_window=16384,
         api_version="2023-07-01-preview")
-
-
-class CustomQueryEngine:
-    embed_model = AzureOpenAIEmbedding(
+embed_model = AzureOpenAIEmbedding(
         model="text-embedding-ada-002",
         deployment_name=os.environ.get("DEFAULT_EMBEDDING_MODEL")
         )
+
+class CustomQueryEngine:
+    embed_model = embed_model
     service_context = ServiceContext.from_defaults(
         embed_model=embed_model,
         chunk_size_limit=1000,
@@ -130,6 +133,8 @@ class CustomQueryEngine:
                     collection_name=collection_name, 
                     client=drivers.VectorDBClients.qdrant_client, 
                     enable_hybrid=True, 
+                    sparse_doc_fn=default_sparse_encoder_fn,
+                    sparse_query_fn=default_sparse_encoder_fn,
                     batch_size=64,
                     client_kwargs=dict(vector_params=vector_params))
             case "chromadb":
@@ -178,7 +183,8 @@ class CustomQueryEngine:
         collection_name: str, 
         vector_store_type: drivers.VectorDBTypes,
         vector_store_index_kwargs: Optional[Dict[str, Any]]={},
-        retriever_type: Literal["simple", "router"]="simple"
+        retriever_type: Literal["simple", "router"]="simple",
+        hybrid: bool=True
     ) -> BaseRetriever:
         vector_store = self.get_vector_store(
             collection_name=collection_name, 
@@ -190,7 +196,7 @@ class CustomQueryEngine:
                     index=index,
                     similarity_top_k=14,
                     embed_model=self.embed_model,
-                    vector_store_query_mode="hybrid",
+                    vector_store_query_mode="hybrid" if hybrid else "default",
                     **vector_store_index_kwargs
                 )
             case "router":
@@ -211,7 +217,7 @@ class CustomQueryEngine:
             description="Retrieves current Impax internal research documents. Use this for latest information. "
         )
         company_10k = RetrieverTool.from_defaults(
-            retriever=self.get_retriever("reports", "qdrant"),
+            retriever=self.get_retriever("reports_transformer_sparse_encoding", "qdrant"),
             description="retrieves information from company 10k and annual reports. Use this to get a detailed view of the companies. "
         )
         tools = [earnings_transcripts, historical_internal_research, current_internal_research, company_10k]
@@ -219,10 +225,14 @@ class CustomQueryEngine:
     
     def get_query_engine_tools(self) -> List[QueryEngineTool]:
         earnings_transcripts = QueryEngineTool(
-            query_engine=self.create_simple_query_engine("earnings_transcripts_llamaindex", "qdrant", synthesize=True),
+            query_engine=self.create_simple_query_engine("earnings_transcripts_llamaindex", "qdrant", synthesize=True, hybrid=False),
             metadata=ToolMetadata(
                 name="earnings_transcripts",
                 description="retrieves information from company earnings transcripts. "
+                "Pass specific search queries to get the best results. " 
+                "Your queries should contain the companies, industries, keywords, and timeframe the use specified. "
+                "If the user asks for vague time frame like 'recent' or 'latest', try to turn it "
+                "into detailed terms, such as '2024' to improve performance. "
             )
         )
         historical_internal_research = QueryEngineTool(
@@ -230,25 +240,41 @@ class CustomQueryEngine:
             metadata=ToolMetadata(
                 name="historical_internal_research",
                 description="Retrieves older Impax internal research documents. Don't use this for latest information. "
+                "Do not write 'Impax' in your queries to this engine. For example, if user asks for " 
+                "'Impax view on industrial companies in 2022', simply query '2022 view on industrial companies. "
+                "Pass specific search queries to get the best results. " 
+                "Your queries should contain the companies, industries, keywords, and timeframe the user requests. "
+                "If the user asks for vague time frame like 'recent' or 'latest', try to turn it "
+                "into detailed terms, such as '2024' to improve performance. "
             )
         )
         current_internal_research = QueryEngineTool(
             query_engine=self.create_simple_query_engine("rh-portal-vector-db-dev", "azuresearch", synthesize=True),
             metadata=ToolMetadata(
                 name="current_internal_research",
-                description="Retrieves current Impax internal research documents. Use this for latest information. "
+                description="Retrieves current Impax internal research documents. Use this for latest internal view and research. "
+                "Do not write 'Impax' in your queries to this engine. For example, if user asks for " 
+                "'Latest Impax view on industrial companies', simply query '2024 view on industrial companies. "
+                "Pass specific search queries to get the best results. " 
+                "Your queries should contain the companies, industries, keywords, and timeframe the user requests. "
+                "If the user asks for vague time frame like 'recent' or 'latest', try to turn it "
+                "into detailed terms, such as '2024' to improve performance. "
             )
         )
-        # company_annual_reports = QueryEngineTool(
-        #     query_engine=self.create_simple_query_engine("reports", "qdrant", synthesize=True),
-        #     metadata=ToolMetadata(
-        #         name="company_annual_reports",
-        #         description="retrieves information from company 10k and annual reports. Use this to get a detailed view of the companies. "
-        #     )
-        # )
+        company_annual_reports = QueryEngineTool(
+            query_engine=self.create_simple_query_engine("reports", "qdrant", synthesize=True, hybrid=False),
+            metadata=ToolMetadata(
+                name="company_annual_reports",
+                description="retrieves information from company 10k and annual reports. Use this to get a detailed view of the companies. "
+                "Pass specific search queries to get the best results. " 
+                "Your queries should contain the companies, industries, keywords, and timeframe the use specified. "
+                "If the user asks for vague time frame like 'recent' or 'latest', try to turn it "
+                "into detailed terms, such as '2024' to improve performance. "
+            )
+        )
         tools = [earnings_transcripts, 
                  historical_internal_research, current_internal_research, 
-                #  company_annual_reports
+                 company_annual_reports
                  ]
         return tools
 
@@ -267,6 +293,7 @@ class CustomQueryEngine:
             collection_name: str,
             vector_store_type: drivers.VectorDBTypes,
             retriever_type: Literal["simple", "router"]="simple",
+            hybrid: bool=True,
             synthesize: bool=True,
             vector_store_index_kwargs: Optional[Dict[str, Any]]={}
             ):
@@ -274,6 +301,7 @@ class CustomQueryEngine:
             collection_name, 
             vector_store_type, 
             retriever_type=retriever_type,
+            hybrid=hybrid,
             vector_store_index_kwargs=vector_store_index_kwargs)
         response_synthesizer = get_response_synthesizer(
             llm=llm,

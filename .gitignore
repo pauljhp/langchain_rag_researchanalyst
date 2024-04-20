@@ -3,6 +3,10 @@ tests/
 test/
 *.ipynb
 
+# temp folders
+src/temp/
+temp/
+
 # notebooks
 notebooks/
 
